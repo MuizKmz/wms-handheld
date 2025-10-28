@@ -80,21 +80,71 @@ export default {
   },
   methods: {
     onScanCode() {
-      uni.scanCode(
-          {
-            autoZoom: false,
-            success: (res) => {
-              console.log('条码类型：' + res.scanType)
-              console.log('条码内容：' + res.result)
-              if (this.type === 0) {
-                this.receivingForm.doNumber = res.result
-              } else {
-                // this.receivingForm.orderCode = res.result
-              }
-            }
+      uni.scanCode({
+        autoZoom: false,
+        success: async (res) => {
+          console.log('Barcode type:', res.scanType)
+          console.log('Barcode content:', res.result)
+          
+          const orderNo = res.result
+          
+          if (this.type === 0) {
+            // DO Number scan
+            this.receivingForm.doNumber = orderNo
+            await this.fetchOrderDetails(orderNo)
+          } else {
+            // PO Number scan
+            this.receivingForm.poNumber = orderNo
+            await this.fetchOrderDetails(orderNo)
           }
-      )
+        }
+      })
     },
+    
+    async fetchOrderDetails(orderNo) {
+      try {
+        uni.showLoading({ title: 'Loading order...' })
+        
+        // Call API to get order details
+        const res = await this.$api.getOrderByNo(orderNo)
+        
+        uni.hideLoading()
+        
+        if (res && res.data) {
+          const order = res.data
+          console.log('Order details:', order)
+          
+          // Populate form with order details
+          this.receivingForm.orderId = order.id
+          this.receivingForm.orderNo = order.orderNo
+          
+          // Auto-fill supplier if available
+          if (order.supplierId) {
+            this.receivingForm.supplierId = order.supplierId
+            this.receivingForm.supplierCode = order.supplier?.supplierCode || ''
+            this.receivingForm.supplierName = order.supplier?.supplierName || ''
+          }
+          
+          uni.showToast({
+            title: 'Order loaded successfully',
+            icon: 'success'
+          })
+        } else {
+          uni.showToast({
+            title: 'Order not found',
+            icon: 'none'
+          })
+        }
+      } catch (error) {
+        uni.hideLoading()
+        console.error('Failed to fetch order:', error)
+        uni.showToast({
+          title: 'Failed to load order',
+          icon: 'none'
+        })
+      }
+    },
+    
     validate() {
       return new Promise((resolve) => {
         this.$refs.submitForm.validate().then(() => {
@@ -114,35 +164,28 @@ export default {
 </script>
 <style lang="scss" scoped>
 .form-item {
-  margin-bottom: 4px;
+  margin-bottom: 12px;
   width: 100%;
 
   .label {
     font-weight: 600;
     display: block;
-    margin-bottom: 4px;
+    margin-bottom: 6px;
     font-size: 13px;
+    color: #333;
   }
 
-  .input-field,
-  .select-field {
-    background-color: #f5f5f5;
-    border-radius: 4px;
-    padding: 8px 10px;
+  .input-field {
+    background-color: #f8f8f8;
+    border-radius: 6px;
+    padding: 10px 12px;
     font-size: 13px;
-
-    :deep(.input-right-icon) {
-      .u-icon__icon {
-        font-size: 12px !important;
-      }
-
-      margin-right: 4px !important;
-    }
+    border: 1px solid #e8e8e8;
   }
 }
 
 :deep(.u-input__content__field-wrapper__field) {
-  font-size: 12px !important;
+  font-size: 13px !important;
   margin-left: 6px !important;
 }
 
@@ -151,7 +194,7 @@ export default {
 }
 
 :deep(.u-form-item__body__right__message) {
-  font-size: 10px !important;
+  font-size: 11px !important;
   margin-left: 0px !important;
   margin-bottom: 4px !important;
 }

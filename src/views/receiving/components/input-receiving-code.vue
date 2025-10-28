@@ -103,35 +103,28 @@ export default {
 </script>
 <style lang="scss" scoped>
 .form-item {
-  margin-bottom: 4px;
+  margin-bottom: 12px;
   width: 100%;
 
   .label {
     font-weight: 600;
     display: block;
-    margin-bottom: 4px;
+    margin-bottom: 6px;
     font-size: 13px;
+    color: #333;
   }
 
-  .input-field,
-  .select-field {
-    background-color: #f5f5f5;
-    border-radius: 4px;
-    padding: 8px 10px;
+  .input-field {
+    background-color: #f8f8f8;
+    border-radius: 6px;
+    padding: 10px 12px;
     font-size: 13px;
-
-    :deep(.input-right-icon) {
-      .u-icon__icon {
-        font-size: 12px !important;
-      }
-
-      margin-right: 4px !important;
-    }
+    border: 1px solid #e8e8e8;
   }
 }
 
 :deep(.u-input__content__field-wrapper__field) {
-  font-size: 12px !important;
+  font-size: 13px !important;
   margin-left: 6px !important;
 }
 
@@ -140,7 +133,7 @@ export default {
 }
 
 :deep(.u-form-item__body__right__message) {
-  font-size: 10px !important;
+  font-size: 11px !important;
   margin-left: 0px !important;
   margin-bottom: 4px !important;
 }

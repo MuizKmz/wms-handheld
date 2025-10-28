@@ -119,7 +119,7 @@ export default {
     gotToReceiving() {
       this.resetReceivingFormAction()
       uni.navigateTo({
-        url: '/views/receiving/rongmah/index'
+        url: '/views/receiving/index'
       })
     },
     gotToStockIn(tagFlow, inboundType) {

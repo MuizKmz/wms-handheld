@@ -85,21 +85,6 @@
       }
     },
     {
-      "path": "views/receiving/rongmah/index",
-      "style": {
-        "navigationBarTitleText": "Evolve Scanner",
-        "navigationStyle": "custom",
-        "enablePullDownRefresh": false,
-        "app-plus": {
-          "bounce": "none",
-          "pullToRefresh": {
-            "style": "circle",
-            "color": "#169C89"
-          }
-        }
-      }
-    },
-    {
       "path": "views/receiving/list",
       "style": {
         "navigationBarTitleText": "Evolve Scanner",
@@ -115,17 +100,13 @@
       }
     },
     {
-      "path": "views/receiving/rongmah/list",
+      "path": "views/receiving/select-products",
       "style": {
-        "navigationBarTitleText": "Evolve Scanner",
+        "navigationBarTitleText": "Select Products",
         "navigationStyle": "custom",
         "enablePullDownRefresh": false,
         "app-plus": {
-          "bounce": "none",
-          "pullToRefresh": {
-            "style": "circle",
-            "color": "#169C89"
-          }
+          "bounce": "none"
         }
       }
     },

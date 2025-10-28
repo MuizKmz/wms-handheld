@@ -2,6 +2,6 @@ import {httpRequest} from '@/utils/util.request'
 
 export default {
     getSupplierList() {
-        return httpRequest({method: 'GET', url: '/v1/handheld/supplier/list'})
+        return httpRequest({method: 'GET', url: '/api/supplier'})
     },
 }

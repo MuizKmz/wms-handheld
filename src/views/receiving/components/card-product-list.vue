@@ -15,10 +15,10 @@
         <up-text align="center" class="header-text" line="3" text="SKU Code"></up-text>
       </up-col>
       <up-col align="center" justify="center" span="5" textAlign="center">
-        <up-text align="center" class="header-text" line="3" text="Expected"></up-text>
+        <up-text align="center" class="header-text" line="3" text="Receiving Qty"></up-text>
       </up-col>
       <up-col align="center" justify="center" span="2" textAlign="center">
-        <up-text align="center" class="header-text" line="3" text="Opetate"></up-text>
+        <up-text align="center" class="header-text" line="3" text="Action"></up-text>
       </up-col>
     </up-row>
     <up-line></up-line>
@@ -35,32 +35,20 @@
             <up-text :text="getTableText(item.skuCode)" align="center" class="table-text" line="3"></up-text>
           </up-col>
           <up-col class="wms-flex-row wms-justify-center wms-items-center" justify="center" span="5">
-            <up-number-box v-model="item.expectedQuantity">
+            <up-number-box v-model="item.receivingQuantity" :min="1" :max="item.orderedQuantity || 9999">
               <template #minus>
-                <view
-                    class="minus"
-                >
-                  <up-icon
-                      name="minus"
-                      size="12"
-                  ></up-icon>
+                <view class="minus">
+                  <up-icon name="minus" size="12"></up-icon>
                 </view>
               </template>
               <template #input>
-                <text
-                    class="input"
-                    style="width: 50px;text-align: center;font-size: 12px;"
-                >{{ item.expectedQuantity }}
+                <text class="input" style="width: 50px;text-align: center;font-size: 12px;">
+                  {{ item.receivingQuantity }}
                 </text>
               </template>
               <template #plus>
-                <view
-                    class="plus"
-                >
-                  <up-icon
-                      name="plus"
-                      size="12"
-                  ></up-icon>
+                <view class="plus">
+                  <up-icon name="plus" size="12"></up-icon>
                 </view>
               </template>
             </up-number-box>

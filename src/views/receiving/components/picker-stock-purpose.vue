@@ -5,9 +5,9 @@
         prop="stockPurposeName"
     >
       <view class="form-item" @click="onPurpose">
-        <text class="label">Purpose of Stock In:</text>
+        <text class="label">Receiving Purpose:</text>
         <up-input v-model="receivingForm.stockPurposeName" border="none" class="input-field"
-                  placeholder=" Select stock-in purpose"
+                  placeholder=" Select receiving purpose"
                   readonly>
           <template #suffix>
             <up-icon :bold="true" class="input-right-icon" name="arrow-right" size="18"></up-icon>
@@ -70,10 +70,7 @@ export default {
     }),
   },
   mounted() {
-    console.log('register-event-onShow')
-    uni.$on('onShow', () => {
-      this.getPurposeList()
-    })
+    this.getPurposeList()
   },
   beforeUnmount() {
     console.log('unRegister-event-onShow')
@@ -83,23 +80,26 @@ export default {
     onPurpose() {
       this.ctrl.pickerOptions = [...this.columns]
       this.ctrl.pickerDefaultIndex = this.defaultIndex
-      this.ctrl.pickerTitle = 'Purpose of Stock In'
+      this.ctrl.pickerTitle = 'Purpose of Receiving'
       this.ctrl.pickerShow = true
     },
 
     async getPurposeList() {
-      let res = await this.$api.getStockPurposeList()
+      // Hardcoded options for Receiving Purpose
+      const purposes = [
+        { id: 1, name: 'Raw Material', code: 'RAW_MATERIAL' },
+        { id: 2, name: 'Finished Goods', code: 'FINISHED_GOODS' }
+      ]
+      
       let columns = []
-      if (res.success) {
-        res.data.forEach((item) => {
-          columns.push({
-            id: item.id,
-            label: item.name,
-            value: item.code
-          })
+      purposes.forEach((item) => {
+        columns.push({
+          id: item.id,
+          label: item.name,
+          value: item.code
         })
-        this.columns = [columns]
-      }
+      })
+      this.columns = [columns]
     },
 
     pickerConfirm(e) {
@@ -136,22 +136,23 @@ export default {
 </script>
 <style lang="scss" scoped>
 .form-item {
-  margin-bottom: 4px;
+  margin-bottom: 12px;
   width: 100%;
 
   .label {
     font-weight: 600;
     display: block;
-    margin-bottom: 4px;
+    margin-bottom: 6px;
     font-size: 13px;
+    color: #333;
   }
 
-  .input-field,
-  .select-field {
-    background-color: #f5f5f5;
-    border-radius: 4px;
-    padding: 8px 10px;
+  .input-field {
+    background-color: #f8f8f8;
+    border-radius: 6px;
+    padding: 10px 12px;
     font-size: 13px;
+    border: 1px solid #e8e8e8;
 
     :deep(.input-right-icon) {
       .u-icon__icon {
@@ -164,7 +165,7 @@ export default {
 }
 
 :deep(.u-input__content__field-wrapper__field) {
-  font-size: 12px !important;
+  font-size: 13px !important;
   margin-left: 6px !important;
 }
 
@@ -173,7 +174,7 @@ export default {
 }
 
 :deep(.u-form-item__body__right__message) {
-  font-size: 10px !important;
+  font-size: 11px !important;
   margin-left: 0px !important;
   margin-bottom: 4px !important;
 }
