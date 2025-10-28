@@ -1,0 +1,32 @@
+@import url("~@/static/fonts/iconfont/iconfont.css");
+
+//@font-face {
+//  font-family: 'OPPO Sans';
+//  src: url('~@/static/fonts/OPPOSans-Regular.ttf');
+//}
+
+@font-face {
+  font-family: 'Nunito';
+  src: url('~@/static/fonts/Nunito-Regular.ttf');
+}
+
+:root {
+  --font-en: 'Nunito';
+  //--font-zh: 'OPPO Sans';
+}
+
+body {
+  font-family: var(--font-en);
+}
+
+//:root[lang="zh"] body {
+//  font-family: var(--font-zh);
+//}
+
+//
+//body {
+//  // font-family: 'Nunito','Public Sans','OPPO Sans';
+//  // font-family: 'Nunito','OPPO Sans';
+//  font-family: 'Nunito', 'OPPO Sans';
+//}
+	

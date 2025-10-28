@@ -1,0 +1,620 @@
+/************************************************************
+** 请将全局样式拷贝到项目的全局 CSS 文件或者当前页面的顶部 **
+** 否则页面将无法正常显示                                  **
+************************************************************/
+
+html {
+  font-size: 16px;
+  scrollbar-width: none; /* 隐藏滚动条 */
+  -ms-overflow-style: none; /* 针对 IE 和 Edge 隐藏滚动条 */
+}
+
+body {
+  margin: 0;
+  font-family: 'OPPO Sans', Nunito, -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans',
+  'Droid Sans', 'Helvetica Neue', 'Microsoft Yahei', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+view,
+image,
+text {
+  box-sizing: border-box;
+  flex-shrink: 0;
+}
+
+#app {
+  width: 100vw;
+  height: 100vh;
+}
+
+.wms-flex-row {
+  display: flex;
+  flex-direction: row;
+}
+
+.wms-flex-col {
+  display: flex;
+  flex-direction: column;
+}
+
+.wms-flex-wrap {
+  flex-wrap: wrap;
+}
+
+.wms-justify-start {
+  justify-content: flex-start;
+}
+
+.wms-justify-end {
+  justify-content: flex-end;
+}
+
+.wms-justify-center {
+  justify-content: center;
+}
+
+.wms-justify-between {
+  justify-content: space-between;
+}
+
+.wms-justify-around {
+  justify-content: space-around;
+}
+
+.wms-justify-evenly {
+  justify-content: space-evenly;
+}
+
+.wms-items-start {
+  align-items: flex-start;
+}
+
+.wms-items-end {
+  align-items: flex-end;
+}
+
+.wms-items-center {
+  align-items: center;
+}
+
+.wms-items-baseline {
+  align-items: baseline;
+}
+
+.wms-items-stretch {
+  align-items: stretch;
+}
+
+.wms-self-start {
+  align-self: flex-start;
+}
+
+.wms-self-end {
+  align-self: flex-end;
+}
+
+.wms-self-center {
+  align-self: center;
+}
+
+.wms-self-baseline {
+  align-self: baseline;
+}
+
+.wms-self-stretch {
+  align-self: stretch;
+}
+
+.wms-flex-1 {
+  flex: 1 1 0%;
+}
+
+.wms-flex-auto {
+  flex: 1 1 auto;
+}
+
+.wms-grow {
+  flex-grow: 1;
+}
+
+.wms-grow-0 {
+  flex-grow: 0;
+}
+
+.wms-shrink {
+  flex-shrink: 1;
+}
+
+.wms-shrink-0 {
+  flex-shrink: 0;
+}
+
+.wms-relative {
+  position: relative;
+}
+
+.wms-ml-2 {
+  margin-left: 2px;
+}
+
+.wms-mt-2 {
+  margin-top: 2px;
+}
+
+.wms-ml-4 {
+  margin-left: 4px;
+}
+
+.wms-mt-4 {
+  margin-top: 4px;
+}
+
+.wms-ml-6 {
+  margin-left: 6px;
+}
+
+.wms-mt-6 {
+  margin-top: 6px;
+}
+
+.wms-ml-8 {
+  margin-left: 8px;
+}
+
+.wms-mt-8 {
+  margin-top: 8px;
+}
+
+.wms-ml-10 {
+  margin-left: 10px;
+}
+
+.wms-mt-10 {
+  margin-top: 10px;
+}
+
+.wms-ml-12 {
+  margin-left: 12px;
+}
+
+.wms-mt-12 {
+  margin-top: 12px;
+}
+
+.wms-ml-14 {
+  margin-left: 14px;
+}
+
+.wms-mt-14 {
+  margin-top: 14px;
+}
+
+.wms-ml-16 {
+  margin-left: 16px;
+}
+
+.wms-mt-16 {
+  margin-top: 16px;
+}
+
+.wms-ml-18 {
+  margin-left: 18px;
+}
+
+.wms-mt-18 {
+  margin-top: 18px;
+}
+
+.wms-ml-20 {
+  margin-left: 20px;
+}
+
+.wms-mt-20 {
+  margin-top: 20px;
+}
+
+.wms-ml-22 {
+  margin-left: 22px;
+}
+
+.wms-mt-22 {
+  margin-top: 22px;
+}
+
+.wms-ml-24 {
+  margin-left: 24px;
+}
+
+.wms-mt-24 {
+  margin-top: 24px;
+}
+
+.wms-ml-26 {
+  margin-left: 26px;
+}
+
+.wms-mt-26 {
+  margin-top: 26px;
+}
+
+.wms-ml-28 {
+  margin-left: 28px;
+}
+
+.wms-mt-28 {
+  margin-top: 28px;
+}
+
+.wms-ml-30 {
+  margin-left: 30px;
+}
+
+.wms-mt-30 {
+  /* #ifdef APP-PLUS */
+  margin-top: 70px;
+  /* #endif */
+  /* #ifdef H5 */
+  margin-top: 30px;
+  /* #endif */
+}
+
+.wms-ml-32 {
+  margin-left: 32px;
+}
+
+.wms-mt-32 {
+  margin-top: 32px;
+}
+
+.wms-ml-34 {
+  margin-left: 34px;
+}
+
+.wms-mt-34 {
+  margin-top: 34px;
+}
+
+.wms-ml-36 {
+  margin-left: 36px;
+}
+
+.wms-mt-36 {
+  margin-top: 36px;
+}
+
+.wms-ml-38 {
+  margin-left: 38px;
+}
+
+.wms-mt-38 {
+  margin-top: 38px;
+}
+
+.wms-ml-40 {
+  margin-left: 40px;
+}
+
+.wms-mt-40 {
+  margin-top: 40px;
+}
+
+.wms-ml-42 {
+  margin-left: 42px;
+}
+
+.wms-mt-42 {
+  margin-top: 42px;
+}
+
+.wms-ml-44 {
+  margin-left: 44px;
+}
+
+.wms-mt-44 {
+  margin-top: 44px;
+}
+
+.wms-ml-46 {
+  margin-left: 46px;
+}
+
+.wms-mt-46 {
+  margin-top: 46px;
+}
+
+.wms-ml-48 {
+  margin-left: 48px;
+}
+
+.wms-mt-48 {
+  margin-top: 48px;
+}
+
+.wms-ml-50 {
+  margin-left: 50px;
+}
+
+.wms-mt-50 {
+  /* #ifdef APP-PLUS */
+  margin-top: 90px;
+  /* #endif */
+  /* #ifdef H5 */
+  margin-top: 50px;
+  /* #endif */
+}
+
+.wms-ml-52 {
+  margin-left: 52px;
+}
+
+.wms-mt-52 {
+  margin-top: 52px;
+}
+
+.wms-ml-54 {
+  margin-left: 54px;
+}
+
+.wms-mt-54 {
+  margin-top: 54px;
+}
+
+.wms-ml-56 {
+  margin-left: 56px;
+}
+
+.wms-mt-56 {
+  margin-top: 56px;
+}
+
+.wms-ml-58 {
+  margin-left: 58px;
+}
+
+.wms-mt-58 {
+  margin-top: 58px;
+}
+
+.wms-ml-60 {
+  margin-left: 60px;
+}
+
+.wms-mt-60 {
+  margin-top: 60px;
+}
+
+.wms-ml-62 {
+  margin-left: 62px;
+}
+
+.wms-mt-62 {
+  margin-top: 62px;
+}
+
+.wms-ml-64 {
+  margin-left: 64px;
+}
+
+.wms-mt-64 {
+  margin-top: 64px;
+}
+
+.wms-ml-66 {
+  margin-left: 66px;
+}
+
+.wms-mt-66 {
+  margin-top: 66px;
+}
+
+.wms-ml-68 {
+  margin-left: 68px;
+}
+
+.wms-mt-68 {
+  margin-top: 68px;
+}
+
+.wms-ml-70 {
+  margin-left: 70px;
+}
+
+.wms-mt-70 {
+  margin-top: 70px;
+}
+
+.wms-ml-72 {
+  margin-left: 72px;
+}
+
+.wms-mt-72 {
+  margin-top: 72px;
+}
+
+.wms-ml-74 {
+  margin-left: 74px;
+}
+
+.wms-mt-74 {
+  margin-top: 74px;
+}
+
+.wms-ml-76 {
+  margin-left: 76px;
+}
+
+.wms-mt-76 {
+  margin-top: 76px;
+}
+
+.wms-ml-78 {
+  margin-left: 78px;
+}
+
+.wms-mt-78 {
+  margin-top: 78px;
+}
+
+.wms-ml-80 {
+  margin-left: 80px;
+}
+
+.wms-mt-80 {
+  margin-top: 80px;
+}
+
+.wms-ml-82 {
+  margin-left: 82px;
+}
+
+.wms-mt-82 {
+  margin-top: 82px;
+}
+
+.wms-ml-84 {
+  margin-left: 84px;
+}
+
+.wms-mt-84 {
+  margin-top: 84px;
+}
+
+.wms-ml-86 {
+  margin-left: 86px;
+}
+
+.wms-mt-86 {
+  margin-top: 86px;
+}
+
+.wms-ml-88 {
+  margin-left: 88px;
+}
+
+.wms-mt-88 {
+  margin-top: 88px;
+}
+
+.wms-ml-90 {
+  margin-left: 90px;
+}
+
+.wms-mt-90 {
+  margin-top: 90px;
+}
+
+.wms-ml-92 {
+  margin-left: 92px;
+}
+
+.wms-mt-92 {
+  margin-top: 92px;
+}
+
+.wms-ml-94 {
+  margin-left: 94px;
+}
+
+.wms-mt-94 {
+  margin-top: 94px;
+}
+
+.wms-ml-96 {
+  margin-left: 96px;
+}
+
+.wms-mt-96 {
+  margin-top: 96px;
+}
+
+.wms-ml-98 {
+  margin-left: 98px;
+}
+
+.wms-mt-98 {
+  margin-top: 98px;
+}
+
+.wms-ml-100 {
+  margin-left: 100px;
+}
+
+.wms-mt-100 {
+  margin-top: 100px;
+}
+
+.wms-gap-2 {
+  gap: 2px;
+}
+
+.wms-gap-4 {
+  gap: 4px;
+}
+
+.wms-gap-6 {
+  gap: 6px;
+}
+
+.wms-gap-8 {
+  gap: 8px;
+}
+
+.wms-gap-10 {
+  gap: 10px;
+}
+
+.wms-gap-12 {
+  gap: 12px;
+}
+
+.wms-gap-14 {
+  gap: 14px;
+}
+
+.wms-gap-15 {
+  gap: 15px;
+}
+
+.wms-gap-18 {
+  gap: 18px;
+}
+
+.wms-gap-20 {
+  gap: 20px;
+}
+
+.wms-gap-30 {
+  gap: 30px;
+}
+
+.wms-font-8 {
+  font-size: 8px !important;
+}
+
+.wms-font-10 {
+  font-size: 10px !important;
+}
+
+.wms-font-12 {
+  font-size: 12px !important;
+}
+
+.wms-font-14 {
+  font-size: 14px !important;
+}
+
+.wms-font-15 {
+  font-size: 15px !important;
+}
+
+.wms-font-16 {
+  font-size: 16px !important;
+}
+
+.wms-font-18 {
+  font-size: 18px !important;
+}
+
+

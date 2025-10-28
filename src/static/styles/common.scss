@@ -1,0 +1,58 @@
+// static/styles/common.scss
+$theme-background: #303030; // Change this to your preferred color
+
+body, .app-container {
+  background-color: $theme-background;
+}
+.cm-color-primary {
+  color: $u-primary !important;
+}
+
+.cm-color-warning {
+  color: $u-warning !important;
+}
+
+.cm-color-success {
+  color: $u-success !important;
+}
+
+.cm-color-error {
+  color: $u-error !important;
+}
+
+.btn-wrapper-fixed {
+  position: fixed;
+  bottom: 30px;
+  width: 100vw;
+
+  .btn-content {
+    background-color: $u-primary;
+    border-radius: 10px;
+    overflow: hidden;
+    width: 342px;
+
+    ::v-deep .u-button__text {
+      font-size: 20px !important;
+    }
+  }
+
+  .btn-plain {
+    overflow: hidden;
+    width: 342px;
+
+    ::v-deep .u-button {
+      border-radius: 10px;
+    }
+
+    ::v-deep .u-button__text {
+      font-size: 20px !important;
+    }
+  }
+}
+
+.btn-wrapper ::v-deep .u-button--square {
+  border-radius: 10px !important;
+  // ::v-deep .u-button__text{
+  // 	font-size: 20px !important;
+  // }
+}

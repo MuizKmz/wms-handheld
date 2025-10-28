@@ -1,0 +1,263 @@
+{
+  "easycom": {
+    "autoscan": true,
+    "custom": {
+      "^u--(.*)": "uview-plus/components/u-$1/u-$1.vue",
+      "^up-(.*)": "uview-plus/components/u-$1/u-$1.vue",
+      "^u-([^-].*)": "uview-plus/components/u-$1/u-$1.vue",
+      "wms-(.*)": "@/components/wms-ui/$1/index.vue"
+    }
+  },
+  "pages": [
+    {
+      "path": "views/startup",
+      "style": {
+        "navigationBarTitleText": "Evolve Scanner",
+        "navigationStyle": "custom",
+        "enablePullDownRefresh": false,
+        "app-plus": {
+          "bounce": "none",
+          "pullToRefresh": {
+            "style": "circle",
+            "color": "#169C89"
+          }
+        }
+      }
+    },
+    {
+      "path": "views/public/login",
+      "style": {
+        "navigationBarTitleText": "Evolve Scanner",
+        "navigationStyle": "custom",
+        "enablePullDownRefresh": false,
+        "app-plus": {
+          "bounce": "none",
+          "pullToRefresh": {
+            "style": "circle",
+            "color": "#169C89"
+          }
+        }
+      }
+    },
+    {
+      "path": "views/index",
+      "style": {
+        "navigationBarTitleText": "Evolve Scanner",
+        "navigationStyle": "custom",
+        "enablePullDownRefresh": false,
+        "app-plus": {
+          "bounce": "none",
+          "pullToRefresh": {
+            "style": "circle",
+            "color": "#169C89"
+          }
+        }
+      }
+    },
+    {
+      "path": "views/search/index",
+      "style": {
+        "navigationBarTitleText": "Evolve Scanner",
+        "navigationStyle": "custom",
+        "enablePullDownRefresh": false,
+        "app-plus": {
+          "bounce": "none",
+          "pullToRefresh": {
+            "style": "circle",
+            "color": "#169C89"
+          }
+        }
+      }
+    },
+    {
+      "path": "views/receiving/index",
+      "style": {
+        "navigationBarTitleText": "Evolve Scanner",
+        "navigationStyle": "custom",
+        "enablePullDownRefresh": false,
+        "app-plus": {
+          "bounce": "none",
+          "pullToRefresh": {
+            "style": "circle",
+            "color": "#169C89"
+          }
+        }
+      }
+    },
+    {
+      "path": "views/receiving/rongmah/index",
+      "style": {
+        "navigationBarTitleText": "Evolve Scanner",
+        "navigationStyle": "custom",
+        "enablePullDownRefresh": false,
+        "app-plus": {
+          "bounce": "none",
+          "pullToRefresh": {
+            "style": "circle",
+            "color": "#169C89"
+          }
+        }
+      }
+    },
+    {
+      "path": "views/receiving/list",
+      "style": {
+        "navigationBarTitleText": "Evolve Scanner",
+        "navigationStyle": "custom",
+        "enablePullDownRefresh": false,
+        "app-plus": {
+          "bounce": "none",
+          "pullToRefresh": {
+            "style": "circle",
+            "color": "#169C89"
+          }
+        }
+      }
+    },
+    {
+      "path": "views/receiving/rongmah/list",
+      "style": {
+        "navigationBarTitleText": "Evolve Scanner",
+        "navigationStyle": "custom",
+        "enablePullDownRefresh": false,
+        "app-plus": {
+          "bounce": "none",
+          "pullToRefresh": {
+            "style": "circle",
+            "color": "#169C89"
+          }
+        }
+      }
+    },
+    {
+      "path": "views/stock-in/index",
+      "style": {
+        "navigationBarTitleText": "Evolve Scanner",
+        "navigationStyle": "custom",
+        "enablePullDownRefresh": false,
+        "app-plus": {
+          "bounce": "none",
+          "pullToRefresh": {
+            "style": "circle",
+            "color": "#169C89"
+          }
+        }
+      }
+    },
+    {
+      "path": "views/stock-out/index",
+      "style": {
+        "navigationBarTitleText": "Evolve Scanner",
+        "navigationStyle": "custom",
+        "enablePullDownRefresh": false,
+        "app-plus": {
+          "bounce": "none",
+          "pullToRefresh": {
+            "style": "circle",
+            "color": "#169C89"
+          }
+        }
+      }
+    },
+    {
+      "path": "views/stock-take/index",
+      "style": {
+        "navigationBarTitleText": "Evolve Scanner",
+        "navigationStyle": "custom",
+        "enablePullDownRefresh": false,
+        "app-plus": {
+          "bounce": "none",
+          "pullToRefresh": {
+            "style": "circle",
+            "color": "#169C89"
+          }
+        }
+      }
+    },
+    {
+      "path": "views/loan/index",
+      "style": {
+        "navigationBarTitleText": "Evolve Scanner",
+        "navigationStyle": "custom",
+        "enablePullDownRefresh": false,
+        "app-plus": {
+          "bounce": "none",
+          "pullToRefresh": {
+            "style": "circle",
+            "color": "#169C89"
+          }
+        }
+      }
+    },
+    {
+      "path": "views/loan/new",
+      "style": {
+        "navigationBarTitleText": "Evolve Scanner",
+        "navigationStyle": "custom",
+        "enablePullDownRefresh": false,
+        "app-plus": {
+          "bounce": "none",
+          "pullToRefresh": {
+            "style": "circle",
+            "color": "#169C89"
+          }
+        }
+      }
+    },
+    {
+      "path": "views/loan/scan",
+      "style": {
+        "navigationBarTitleText": "Evolve Scanner",
+        "navigationStyle": "custom",
+        "enablePullDownRefresh": false,
+        "app-plus": {
+          "bounce": "none",
+          "pullToRefresh": {
+            "style": "circle",
+            "color": "#169C89"
+          }
+        }
+      }
+    },
+    {
+      "path": "views/stock-return/index",
+      "style": {
+        "navigationBarTitleText": "Evolve Scanner",
+        "navigationStyle": "custom",
+        "enablePullDownRefresh": false,
+        "app-plus": {
+          "bounce": "none",
+          "pullToRefresh": {
+            "style": "circle",
+            "color": "#169C89"
+          }
+        }
+      }
+    },
+    {
+      "path": "views/public/notification",
+      "style": {
+        "navigationBarTitleText": "Evolve Scanner",
+        "navigationStyle": "custom",
+        "enablePullDownRefresh": false,
+        "app-plus": {
+          "bounce": "none",
+          "pullToRefresh": {
+            "style": "circle",
+            "color": "#169C89"
+          }
+        }
+      }
+    }
+  ],
+  "globalStyle": {
+    "navigationBarTextStyle": "black",
+    "navigationBarTitleText": "Evolve Scanner",
+    "navigationBarBackgroundColor": "#F8F8F8",
+    "backgroundColor": "#F8F8F8",
+    "scrollIndicator": "none",
+    "app-plus": {
+      "scrollIndicator": "none"
+    }
+  }
+}
