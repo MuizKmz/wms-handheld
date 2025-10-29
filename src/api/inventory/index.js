@@ -6,7 +6,8 @@ export default {
     },
 
     queryInventoryList(params) {
-        return httpRequest({method: 'GET', url: '/v1/handheld/inventory/list', params})
+        // Updated to use EPC query endpoint with tagCodes
+        return httpRequest({method: 'GET', url: '/api/epc/query-by-codes', params})
     },
 
     stockIn(data) {
@@ -28,5 +29,9 @@ export default {
     testSession() {
         return httpRequest({method: 'GET', url: '/v1/handheld/inventory/info'})
     },
+
+    bulkUpdateStatuses(ids, status) {
+        return httpRequest({method: 'POST', url: '/api/epc/bulk-update-status', data: {ids, status}})
+    }
 
 }

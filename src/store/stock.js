@@ -132,38 +132,73 @@ export const useStockStore = defineStore('stock', {
                 let toInquireTagCodes = Array.from(Object.keys(tagStore)).filter(tagCode => {
                     return !inquiredTagSet.has(tagCode)
                 })
+                
                 if (toInquireTagCodes.length <= 0) {
                     return
                 }
-                let res = await api.queryInventoryList({
-                    tagCodes: toInquireTagCodes
-                })
+                
+                let res
+                try {
+                    res = await api.queryInventoryList({
+                        tagCodes: toInquireTagCodes
+                    })
+                } catch (error) {
+                    console.error('API Error:', error)
+                    uni.showModal({
+                        title: '❌ Network Error',
+                        content: `Cannot connect to backend.\n\nError: ${error.message}\n\nMake sure backend is running.`,
+                        showCancel: false
+                    })
+                    resolve({success: false, msg: error.message})
+                    return
+                }
+                
+                if (res.success && res.data && res.data.length > 0) {
+                    uni.showToast({
+                        title: `✅ Found ${res.data.length} EPC(s)`,
+                        icon: 'success',
+                        duration: 2000
+                    })
+                } else if (res.success && (!res.data || res.data.length === 0)) {
+                    uni.showModal({
+                        title: '⚠️ EPC Not Found',
+                        content: `The scanned EPC is not in the database.\n\nPlease ensure the EPC was generated in the admin panel.`,
+                        showCancel: false
+                    })
+                }
+                
                 toInquireTagCodes.forEach(tagCode => {
                     let tag
-                    if (res.success) {
-                        // EPC mode
-                        if (res.data.length > 0) {
-                            tag = res.data.find(item => {
-                                return item.tagCode === tagCode
-                            })
+                    if (res.success && res.data && res.data.length > 0) {
+                        // Find the matching EPC
+                        tag = res.data.find(item => {
+                            return item.tagCode === tagCode || item.epcCode === tagCode
+                        })
+                    }
+                    
+                    if (!tag) {
+                        tag = {
+                            tagCode: tagCode,
+                            epcCode: tagCode,
+                            skuCode: null,
+                            productName: null
                         }
                     }
-                    if (!tag) {
-                        tag = {tagCode: tagCode}
-                    }
-                    // remove old record
+                    
+                    // Remove old record if exists
                     for (let i = 0; i < scannedTags.length; i++) {
                         let current = scannedTags[i]
-                        if (current.tagCode === tagCode) {
-                            // remove current and add to header
+                        if (current.tagCode === tagCode || current.epcCode === tagCode) {
                             scannedTags.splice(i, 1)
                             break
                         }
                     }
+                    
                     tag.tagType = tagStore[tagCode]
                     scannedTags.splice(0, 0, tag)
                     inquiredTagSet.add(tagCode)
                 })
+                
                 this.inquiredTagCodes = [...inquiredTagSet]
                 resolve(res)
             })

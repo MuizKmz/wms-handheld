@@ -2,12 +2,8 @@
   <view v-if="stockInForm.receivingCode" class="tags-section">
     <view class="tags-header">
       <view class="wms-flex-row wms-justify-center wms-items-center inventory-title">
-        <up-text :bold="true" prefixIcon="tags" size="12" text="Tags Scanned"></up-text>
+        <up-text :bold="true" prefixIcon="tags" size="12" text="Scanned EPCs"></up-text>
         <view class="wms-flex-row wms-justify-center wms-items-center">
-          <view v-if="stockInForm.tagFlow === 1" class="wms-flex-row wms-justify-center wms-items-center">
-            <up-text :bold="false" class="valid-switch" size="12" text="Valid Only"></up-text>
-            <up-switch v-model="ctrl.showValid" size="20" @change="handleTagsUpdate"></up-switch>
-          </view>
           <view class="wms-flex-row wms-justify-between wms-items-center wms-gap-4 wms-ml-4">
             <up-button :hairline="false" :plain="true" :throttleTime="1000" icon="trash-fill" shape="circle" size="mini"
                        text="" type="info"
@@ -20,31 +16,19 @@
       </view>
     </view>
     <up-line></up-line>
-    <scroll-view class="table-wrapper" scroll-x="true">
+    <scroll-view class="table-wrapper" scroll-x="false">
       <up-row align="center" class="table-header" justify="start">
         <up-col span="1" textAlign="center">
-          <up-text align="center" class="header-text" line="3" text="Select"></up-text>
+          <up-text align="center" class="header-text" line="3" text="#"></up-text>
         </up-col>
-        <up-col span="2" textAlign="center">
-          <up-text align="center" class="header-text" line="3" text="Tag Code"></up-text>
+        <up-col span="5" textAlign="center">
+          <up-text align="center" class="header-text" line="3" text="EPC Code"></up-text>
         </up-col>
-        <up-col span="1.8" textAlign="center">
-          <up-text align="center" class="header-text" line="3" text="Receiving Code"></up-text>
+        <up-col span="3" textAlign="center">
+          <up-text align="center" class="header-text" line="3" text="SKU Code"></up-text>
         </up-col>
-        <up-col span="1.2" textAlign="center">
-          <up-text align="center" class="header-text" line="3" text="Status"></up-text>
-        </up-col>
-        <up-col span="1.5" textAlign="center">
-          <up-text align="center" class="header-text" line="3" text="Sku Code"></up-text>
-        </up-col>
-        <up-col span="1.5" textAlign="center">
-          <up-text align="center" class="header-text" line="3" text="Warehouse"></up-text>
-        </up-col>
-        <up-col span="1.5" textAlign="center">
-          <up-text align="center" class="header-text" line="3" text="Rack"></up-text>
-        </up-col>
-        <up-col span="1.5" textAlign="center">
-          <up-text align="center" class="header-text" line="3" text="Section"></up-text>
+        <up-col span="3" textAlign="center">
+          <up-text align="center" class="header-text" line="3" text="Product"></up-text>
         </up-col>
       </up-row>
       <up-line class="separator-line"></up-line>
@@ -52,41 +36,19 @@
         <view v-for="(item, index) in tagList" :key="index" class="table-row">
           <up-row :class="getRowClass(item)" align="center" justify="start">
             <up-col span="1">
-              <up-checkbox
-                  v-model:checked="item.checked"
-                  :disabled="item.disabled"
-                  label=""
-                  usedAlone
-              >
-              </up-checkbox>
+              <up-text :text="(index + 1).toString()" align="center" class="table-text" line="1"></up-text>
             </up-col>
-            <up-col span="2">
-              <up-text :text="item.tagCode" align="center" class="table-text text-width-limit"
-                       line="3"></up-text>
+            <up-col span="5">
+              <up-text :text="item.epcCode || item.tagCode" align="left" class="table-text text-width-limit"
+                       line="2"></up-text>
             </up-col>
-            <up-col span="1.8">
-              <up-text :text="item.receivingCode || '--'" align="center" class="table-text"
-                       line="3"></up-text>
-            </up-col>
-            <up-col span="1.2">
-              <up-text :text="getStatusDesc(item.status)" align="center" class="table-text"
-                       line="3"></up-text>
-            </up-col>
-            <up-col span="1.5">
+            <up-col span="3">
               <up-text :text="item.skuCode || '--'" align="center" class="table-text"
-                       line="3"></up-text>
+                       line="2"></up-text>
             </up-col>
-            <up-col span="1.5">
-              <up-text :text="item.warehouseCode || '--'" align="center" class="table-text"
-                       line="3"></up-text>
-            </up-col>
-            <up-col span="1.5">
-              <up-text :text="item.rackCode || '--'" align="center" class="table-text"
-                       line="3"></up-text>
-            </up-col>
-            <up-col span="1.5">
-              <up-text :text="item.sectionCode || '--'" align="center" class="table-text"
-                       line="3"></up-text>
+            <up-col span="3">
+              <up-text :text="item.productName || '--'" align="left" class="table-text"
+                       line="2"></up-text>
             </up-col>
           </up-row>
         </view>
@@ -180,94 +142,37 @@ export default {
     handleTagsUpdate() {
       let tagList = []
       let stockInTags = []
+      
       this.scannedTags.forEach(tag => {
-        tag.disabled = this.getDisableState(tag)
-        if (tag.checked === undefined) {
-          if (tag.disabled) {
-            tag.checked = false
-          } else {
-            tag.checked = true
-          }
-        }
-        if (this.ctrl.showValid) {
-          if (!tag.disabled || tag.status === 1 || tag.status === 2) {
-            tagList.push(tag)
-          }
-        } else {
-          tagList.push(tag)
-        }
-        // EPC mode
+        // Add all scanned tags to the list
+        tagList.push(tag)
+        
+        // EPC mode - add tags with SKU code to stock-in list
         if (this.stockInForm.tagFlow === 1) {
-          // set stock in products
-          if (tag.skuCode && !tag.disabled && tag.checked) {
+          if (tag.skuCode) {
             stockInTags.push(tag)
           }
         } else {
-          // set stock in products
-          if (this.tidProduct && !tag.disabled && tag.checked) {
+          // TID mode - use tidProduct
+          if (this.tidProduct) {
             tag.skuCode = this.tidProduct.skuCode
             tag.productCode = this.tidProduct.productCode
+            tag.productName = this.tidProduct.name
             stockInTags.push(tag)
           }
         }
-
       })
+      
       this.tagList = tagList
-      // console.log(tagList)
       this.stockInTags = stockInTags
     },
-    getStatusDesc(status) {
-      let inventoryStatus = this.$getInventoryStatus(status)
-      return inventoryStatus ? inventoryStatus.name : '--'
-    },
     getRowClass(item) {
-      // EPC Mode
-      if (this.stockInForm.tagFlow === 1) {
-        // Not in stock - primary
-        if (item.status === 0) {
-          return 'text-primary'
-        }
-      } else {
-        // Not in stock - primary
-        if (item.status === undefined) {
-          return 'text-primary'
-        }
-      }
-      if (item.receivingCode !== this.stockInForm.receivingCode) {
-        return 'text-disabled'
-      } else if (item.status === 1) {
+      // Show scanned items with SKU in success color
+      if (item.skuCode) {
         return 'text-success'
-      } else if (item.status === 2) {
-        return 'text-warning'
-      } else if (item.status === 3) {
-        return 'text-primary'
       }
-
-    },
-    getDisableState(item) {
-      // EPC Mode
-      if (this.stockInForm.tagFlow === 1) {
-        // Not in stock - primary
-        if (item.status === 0) {
-          return false
-        }
-      } else {
-        // Not in stock - primary
-        if (item.status === undefined) {
-          return false
-        }
-      }
-
-      if (item.receivingCode !== this.stockInForm.receivingCode) {
-        return true
-      } else if (item.status === 1) {
-        return true
-      } else if (item.status === 2) {
-        return true
-      } else if (item.status === 3) {
-        return false
-      }
-      return true
+      // Show items without SKU in warning color
+      return 'text-warning'
     },
   }
 }

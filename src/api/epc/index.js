@@ -9,5 +9,12 @@ export default {
   },
   bulkUpdateStatuses(ids, status) {
     return httpRequest({ method: 'POST', url: '/api/epc/bulk-update-status', data: { ids, status } })
+  },
+  stockInScan(data) {
+    return httpRequest({ 
+      method: 'POST', 
+      url: '/api/epc/stock-in-scan', 
+      data 
+    })
   }
 }

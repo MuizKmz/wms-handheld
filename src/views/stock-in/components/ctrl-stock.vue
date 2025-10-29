@@ -202,61 +202,70 @@ export default {
       // #endif
     },
     async confirmStockIn() {
-      if (this.stockInTags.length <= 0) {
-        uni.showToast({
-          title: 'No tags to stock in',
-          icon: 'none'
-        })
-        return
-      }
-
-      let tags = []
-      let epcIds = [] // Collect EPC IDs for bulk status update
-      this.stockInTags.forEach(product => {
-        tags.push({
-          tagType: product.tagType,
-          tagCode: product.tagCode,
-          skuCode: product.skuCode,
-          productCode: product.productCode,
-        })
-        // If product has EPC id, add for bulk update
-        if (product.id && product.tagType === 1) {
-          epcIds.push(product.id)
+      // Collect EPC IDs from scanned tags that have both id and skuCode
+      let epcIds = []
+      this.scannedTags.forEach(tag => {
+        // Only include EPCs that were found in database (have id and skuCode)
+        if (tag.id && tag.skuCode) {
+          epcIds.push(tag.id)
         }
       })
 
-      let stockInForm = {...this.stockInForm}
-      stockInForm.tags = tags
-      delete stockInForm.purposeName
-      delete stockInForm.skuDesc
-      this.ctrl.isLoading = true
-      let res
-      try {
-        res = await this.$api.stockIn(
-            stockInForm
-        )
-      } catch (e) {
-        console.error(e)
-        this.ctrl.isLoading = false
+      if (epcIds.length === 0) {
+        uni.showModal({
+          title: '⚠️ No Valid EPCs',
+          content: 'Please scan EPCs that are registered in the system.\n\nScanned EPCs must have matching SKU codes.',
+          showCancel: false
+        })
         return
       }
 
-      // Update EPC statuses to RECEIVED after successful stock-in
-      if (res.success && epcIds.length > 0) {
-        try {
-          await this.$api.bulkUpdateStatuses(epcIds, 'RECEIVED')
-        } catch (err) {
-          console.warn('EPC status update failed', err)
-        }
+      // Confirm before updating
+      const confirmed = await new Promise((resolve) => {
+        uni.showModal({
+          title: '📦 Confirm Stock In',
+          content: `Update ${epcIds.length} EPC(s) status to INBOUND?`,
+          success: (res) => resolve(res.confirm)
+        })
+      })
+
+      if (!confirmed) return
+
+      this.ctrl.isLoading = true
+      this.ctrl.loadingTxt = `Updating ${epcIds.length} EPC(s)...`
+
+      // Update EPC statuses to INBOUND
+      let res
+      try {
+        res = await this.$api.bulkUpdateStatuses(epcIds, 'INBOUND')
+      } catch (err) {
+        console.error('EPC status update failed', err)
+        this.ctrl.isLoading = false
+        uni.showModal({
+          title: '❌ Stock In Failed',
+          content: `Failed to update EPC status.\n\nError: ${err.message || 'Unknown error'}`,
+          showCancel: false
+        })
+        return
       }
 
       this.ctrl.isLoading = false
       if (res.success) {
-        await this.getReceivingList()
-        await this.reloadInventory()
-        this.$msg('Stock in success')
+        uni.showModal({
+          title: '✅ Stock In Success',
+          content: `Successfully stocked in ${epcIds.length} EPC(s).\n\nStatus updated to INBOUND.`,
+          showCancel: false,
+          success: () => {
+            // Clear scanned tags and refresh
+            this.clear()
+          }
+        })
       } else {
-        this.$msg('Stock in failed: ' + res.msg)
+        uni.showModal({
+          title: '❌ Stock In Failed',
+          content: `Failed to update EPC status.\n\nError: ${res.msg || 'Unknown error'}`,
+          showCancel: false
+        })
       }
     },
   }

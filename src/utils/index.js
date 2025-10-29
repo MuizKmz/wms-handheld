@@ -15,6 +15,22 @@ const urlPathCombine = (base, path) => {
     return `${cleanBase}/${cleanPath}`
 }
 
+// Helper function to convert object to URL params
+const urlParams = (obj) => {
+    if (!obj || typeof obj !== 'object') return ''
+    return Object.keys(obj)
+        .filter(key => obj[key] !== undefined && obj[key] !== null)
+        .map(key => {
+            const value = obj[key]
+            if (Array.isArray(value)) {
+                // Handle arrays: tagCodes=val1&tagCodes=val2
+                return value.map(v => `${encodeURIComponent(key)}=${encodeURIComponent(v)}`).join('&')
+            }
+            return `${encodeURIComponent(key)}=${encodeURIComponent(value)}`
+        })
+        .join('&')
+}
+
 /**
  * 获取OSS图片
  */
@@ -272,6 +288,10 @@ let current = {
     transFileData,
     getContentType,
     deepClone,
+    convert: {
+        urlParams,
+        urlPathCombine
+    },
     ...storage,
     ...business,
     ...permission
