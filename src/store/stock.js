@@ -133,15 +133,22 @@ export const useStockStore = defineStore('stock', {
                     return !inquiredTagSet.has(tagCode)
                 })
                 
+                console.log('🔍 Query inventory - tagStore:', tagStore)
+                console.log('🔍 Query inventory - toInquireTagCodes:', toInquireTagCodes)
+                
                 if (toInquireTagCodes.length <= 0) {
+                    console.log('⚠️ No tags to inquire')
                     return
                 }
+                
+                console.log('📤 Sending API request with tagCodes:', toInquireTagCodes)
                 
                 let res
                 try {
                     res = await api.queryInventoryList({
                         tagCodes: toInquireTagCodes
                     })
+                    console.log('📥 API Response:', JSON.stringify(res, null, 2))
                 } catch (error) {
                     console.error('API Error:', error)
                     uni.showModal({
@@ -154,15 +161,18 @@ export const useStockStore = defineStore('stock', {
                 }
                 
                 if (res.success && res.data && res.data.length > 0) {
+                    console.log('✅ Found EPCs:', res.data)
                     uni.showToast({
                         title: `✅ Found ${res.data.length} EPC(s)`,
                         icon: 'success',
                         duration: 2000
                     })
                 } else if (res.success && (!res.data || res.data.length === 0)) {
+                    console.log('⚠️ No EPCs found in response')
+                    console.log('🔍 Searched for:', toInquireTagCodes)
                     uni.showModal({
                         title: '⚠️ EPC Not Found',
-                        content: `The scanned EPC is not in the database.\n\nPlease ensure the EPC was generated in the admin panel.`,
+                        content: `The scanned EPC is not in the database.\n\nScanned: ${toInquireTagCodes[0]}\n\nPlease ensure the EPC was generated in the admin panel.`,
                         showCancel: false
                     })
                 }

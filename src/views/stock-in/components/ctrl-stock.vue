@@ -1,45 +1,59 @@
 <template>
   <view class="action-section">
-    <!--    <up-row v-if="false" class="action-buttons" gutter="10" justify="center">-->
-    <!--      <up-col span="6">-->
-    <!--        <up-button icon="trash-fill" shape="circle" size="small" text="CLEAN" type="info" @click="onClear"></up-button>-->
-    <!--      </up-col>-->
-    <!--      <up-col span="6">-->
-    <!--        <up-button icon="reload" shape="circle" size="small" text="CANCEL" type="error"-->
-    <!--                   @click="onCancel"></up-button>-->
-    <!--      </up-col>-->
-    <!--    </up-row>-->
-
-    <up-row class="action-buttons" gutter="10" justify="center">
-      <up-col span="4">
-        <up-button :disabled="!stockInForm.receivingCode" :text="inventoryText" :throttleTime="1000" icon="tags"
-                   shape="circle" size="small"
-                   type="success"
-                   @click="inventoryTrigger"></up-button>
-      </up-col>
-      <up-col span="4">
-        <up-button :disabled="!stockInForm.receivingCode" :throttleTime="1000" icon="scan" shape="circle" size="small"
-                   text="SCAN QR"
-                   type="warning"
-                   @click="onScanCode"></up-button>
-      </up-col>
-      <up-col span="4">
-        <up-button :disabled="!stockInForm.receivingCode" :throttleTime="1000" icon="home" shape="circle" size="small"
-                   text="STOCK IN"
-                   type="primary"
-                   @click="confirmStockIn"></up-button>
-        <!--        <up-button :disabled="!stockInForm.receivingCode" class="confirm-btn" size="small"-->
-        <!--                   text="STOCK IN" type="success"-->
-        <!--                   @click="confirmStockIn"></up-button>-->
+    <!-- DEBUG: Temporary button to discover broadcast action -->
+    <up-row v-if="true" class="debug-row" justify="center" style="margin-bottom: 10px;">
+      <up-col span="6">
+        <up-button 
+          :type="debugModeEnabled ? 'error' : 'info'"
+          :text="debugModeEnabled ? '🐛 DEBUG ON' : '🐛 DEBUG OFF'"
+          size="mini"
+          @click="toggleDebugMode"></up-button>
       </up-col>
     </up-row>
-
-    <!-- Second Row: Full-Width Confirm Button -->
-    <up-row v-if="false" justify="center">
-      <up-col class="text-center" span="12">
-        <up-button :disabled="!stockInForm.receivingCode" class="confirm-btn" size="small"
-                   text="CONFIRM STOCK IN" type="success"
-                   @click="confirmStockIn"></up-button>
+    
+    <up-row class="action-buttons" gutter="10" justify="center">
+      <up-col span="3">
+        <up-button 
+          :disabled="!stockInForm.receivingCode" 
+          :text="hardwareScanText" 
+          :type="isHardwareScanning ? 'error' : 'success'"
+          :throttleTime="1000" 
+          icon="scan" 
+          shape="circle" 
+          size="small"
+          @click="toggleHardwareScan"></up-button>
+      </up-col>
+      <up-col span="3">
+        <up-button 
+          :disabled="!stockInForm.receivingCode || isHardwareScanning" 
+          :throttleTime="1000" 
+          icon="camera" 
+          shape="circle" 
+          size="small"
+          text="QR SCAN"
+          type="warning"
+          @click="onScanCode"></up-button>
+      </up-col>
+      <up-col span="3">
+        <up-button 
+          :disabled="!stockInForm.receivingCode" 
+          :throttleTime="1000" 
+          icon="checkmark-circle" 
+          shape="circle" 
+          size="small"
+          text="STOCK IN"
+          type="primary"
+          @click="confirmStockIn"></up-button>
+      </up-col>
+      <up-col span="3">
+        <up-button 
+          :throttleTime="1000" 
+          icon="trash" 
+          shape="circle" 
+          size="small"
+          text="CLEAR"
+          type="info"
+          @click="onClear"></up-button>
       </up-col>
     </up-row>
   </view>
@@ -48,6 +62,7 @@
 import {useInventoryStore} from '@/store/inventory'
 import {mapActions, mapState, mapWritableState} from 'pinia'
 import {useStockStore} from '@/store/stock'
+import hardwareScanner from '@/utils/hardware-scanner'
 
 export default {
   props: {
@@ -60,6 +75,10 @@ export default {
   },
   data() {
     return {
+      isHardwareScanning: false,
+      debugModeEnabled: false,
+      clipboardCheckInterval: null, // Interval for clipboard polling
+      lastClipboardContent: '', // Track last clipboard content to detect new scans
       mockEpcCodeList: ['AF01S0000001042500000001',
         'AF01S0000001042500000002',
         'AF01S0000001042500000003',
@@ -75,8 +94,6 @@ export default {
         'AF01S0000002042500000003',
         'AF01S0000002042500000004',
         'AF01S0000002042500000005']
-      // key:tagCode, value: tagType
-      // scannedMap: new Map(),
     }
   },
   watch: {
@@ -117,17 +134,31 @@ export default {
     inventoryText() {
       return this.inventoryInProgress ? 'STOP SCAN' : 'START SCAN'
     },
+    hardwareScanText() {
+      return this.isHardwareScanning ? 'STOP HW' : 'START HW'
+    }
   },
   async mounted() {
     console.log('ctrl-stock mounted')
+    // Initialize hardware scanner
     // #ifdef APP-PLUS
-    await this.initDevice()
+    const initResult = hardwareScanner.init()
+    if (initResult.success) {
+      console.log('✅ Hardware scanner ready')
+    } else {
+      console.warn('⚠️ Hardware scanner init failed:', initResult.message)
+    }
     // #endif
-    // uni.$on('onShow', () => {
-    // })
   },
   beforeUnmount() {
     console.log('ctrl-stock unmounted')
+    // Stop hardware scanning if active
+    if (this.isHardwareScanning) {
+      hardwareScanner.stopScan()
+      this.isHardwareScanning = false
+    }
+    // Cleanup hardware scanner
+    hardwareScanner.destroy()
     uni.$off('onShow')
     // #ifdef APP-PLUS
     this.stopInventory()
@@ -141,11 +172,219 @@ export default {
       getDeviceInfo: 'getDeviceInfoAction',
     }),
     ...mapActions(useStockStore, {
-      getReceivingList: 'getReceivingListAction',
       clear: 'clearAction',
       queryInventory: 'queryInventoryAction',
       reloadInventory: 'reloadInventoryAction'
     }),
+    /**
+     * Toggle debug mode to discover broadcast actions
+     * TEMPORARY - for testing only
+     */
+    toggleDebugMode() {
+      if (this.debugModeEnabled) {
+        hardwareScanner.disableDebugMode()
+        this.debugModeEnabled = false
+        uni.showToast({
+          title: '🐛 Debug OFF',
+          icon: 'none',
+          duration: 2000
+        })
+      } else {
+        const result = hardwareScanner.enableDebugMode()
+        if (result.success) {
+          this.debugModeEnabled = true
+          uni.showModal({
+            title: '🐛 Debug Mode ON',
+            content: 'Now press the TRIGGER BUTTON on your device.\n\nWatch the console in HBuilder X to see what broadcast is received!',
+            showCancel: false
+          })
+        }
+      }
+    },
+    /**
+     * Toggle hardware scanning on/off
+     */
+    toggleHardwareScan() {
+      if (this.isHardwareScanning) {
+        // Stop hardware scanning
+        this.stopClipboardPolling()
+        hardwareScanner.stopScan()
+        this.isHardwareScanning = false
+        uni.showToast({
+          title: '⏹️ Hardware Scan Stopped',
+          icon: 'none',
+          duration: 1500
+        })
+      } else {
+        // Start hardware scanning
+        const result = hardwareScanner.startScan((barcode, barcodeType) => {
+          this.onHardwareScanResult(barcode, barcodeType)
+        })
+        
+        if (result.success) {
+          this.isHardwareScanning = true
+          this.startClipboardPolling()
+          
+          uni.showToast({
+            title: '🔍 Hardware Scan Active - Use Trigger',
+            icon: 'success',
+            duration: 2000
+          })
+        } else {
+          uni.showModal({
+            title: '❌ Scanner Error',
+            content: `Failed to start hardware scanner.\n\n${result.message}`,
+            showCancel: false
+          })
+        }
+      }
+    },
+    /**
+     * Start polling clipboard for scanner input (clipboard mode)
+     */
+    startClipboardPolling() {
+      // #ifdef APP-PLUS
+      console.log('📋 Starting clipboard polling...')
+      this.lastClipboardContent = ''
+      
+      // Poll clipboard every 300ms
+      this.clipboardCheckInterval = setInterval(() => {
+        uni.getClipboardData({
+          success: (res) => {
+            let clipboardText = res.data
+            
+            // Trim whitespace and newlines
+            if (clipboardText) {
+              clipboardText = clipboardText.trim()
+            }
+            
+            // Check if clipboard content changed and is not empty
+            if (clipboardText && 
+                clipboardText.length > 0 && 
+                clipboardText !== this.lastClipboardContent) {
+              
+              console.log('📋 Clipboard detected:', clipboardText)
+              this.lastClipboardContent = clipboardText
+              
+              // Process as scanned barcode
+              this.onHardwareScanResult(clipboardText, 'clipboard')
+              
+              // Clear clipboard after processing
+              setTimeout(() => {
+                uni.setClipboardData({
+                  data: '',
+                  showToast: false
+                })
+              }, 100)
+            }
+          }
+        })
+      }, 300)
+      // #endif
+    },
+    /**
+     * Stop clipboard polling
+     */
+    stopClipboardPolling() {
+      if (this.clipboardCheckInterval) {
+        clearInterval(this.clipboardCheckInterval)
+        this.clipboardCheckInterval = null
+        console.log('📋 Clipboard polling stopped')
+      }
+    },
+    /**
+     * Handle scanner input blur event
+     */
+    onScannerBlur() {
+      console.log('⚠️ Scanner input lost focus, re-focusing...')
+      // Re-focus immediately by toggling the focus flag
+      if (this.isHardwareScanning) {
+        this.scannerInputFocus = false
+        this.$nextTick(() => {
+          this.scannerInputFocus = true
+          console.log('✅ Scanner input re-focused')
+        })
+      }
+    },
+    /**
+     * Handle scanner input changes (keyboard wedge mode)
+     */
+    onScannerInput() {
+      console.log('⌨️ Scanner input:', this.scannerBuffer)
+      
+      // Clear existing timeout
+      if (this.scannerTimeout) {
+        clearTimeout(this.scannerTimeout)
+      }
+      
+      // Wait 200ms after last keystroke to process (scanner types very fast)
+      this.scannerTimeout = setTimeout(() => {
+        if (this.scannerBuffer && this.scannerBuffer.length > 0) {
+          console.log('✅ Barcode complete:', this.scannerBuffer)
+          this.onHardwareScanResult(this.scannerBuffer, 'keyboard')
+          
+          // Clear buffer and re-focus for next scan
+          this.scannerBuffer = ''
+          
+          // Re-focus input immediately for continuous scanning
+          this.$nextTick(() => {
+            this.scannerInputFocus = false
+            this.$nextTick(() => {
+              this.scannerInputFocus = true
+              console.log('🔄 Ready for next scan')
+            })
+          })
+        }
+      }, 200)
+    },
+    /**
+     * Handle hardware scan result
+     * @param {String} barcode - Scanned barcode
+     * @param {String} barcodeType - Type of barcode
+     */
+    async onHardwareScanResult(barcode, barcodeType) {
+      // Trim any whitespace or newlines
+      barcode = barcode ? barcode.trim() : ''
+      
+      if (!barcode || barcode.length === 0) {
+        console.log('⚠️ Empty barcode after trim, ignoring')
+        return
+      }
+      
+      console.log('📦 Hardware scanned:', barcode, 'Type:', barcodeType)
+      
+      // Show toast feedback
+      uni.showToast({
+        title: `Scanned: ${barcode.substring(0, 15)}...`,
+        icon: 'success',
+        duration: 800
+      })
+      
+      // Determine tag type based on barcode type
+      // 1: EPC/RFID, 2: QR Code, 3: Barcode
+      let tagType = 3 // Default to barcode
+      if (barcodeType && barcodeType.includes('QR')) {
+        tagType = 2
+      }
+      
+      // Add to tag store
+      this.tagStore[barcode] = tagType
+      this.removeFromInquiredTags(barcode)
+      
+      // Query inventory to get product details
+      await this.queryInventory()
+    },
+    /**
+     * Clear all scanned tags
+     */
+    onClear() {
+      this.clear()
+      uni.showToast({
+        title: '🧹 Cleared all tags',
+        icon: 'none',
+        duration: 1500
+      })
+    },
     inventoryTrigger() {
       // this.$emit('onScanUpdate', {})
       // #ifdef APP-PLUS
