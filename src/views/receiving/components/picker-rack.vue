@@ -85,18 +85,12 @@ export default {
         }
       } catch (error) {
         console.error('Failed to fetch rack list:', error)
-        uni.showToast({
-          title: 'Failed to load racks',
-          icon: 'none'
-        })
+        this.$msg('Failed to load racks')
       }
     },
     showPicker() {
       if (!this.receivingForm.warehouseId) {
-        uni.showToast({
-          title: 'Please select warehouse first',
-          icon: 'none'
-        })
+        this.$msg('Please select warehouse first')
         return
       }
       

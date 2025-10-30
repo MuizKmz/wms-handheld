@@ -70,17 +70,11 @@ export default {
           console.log('Warehouse options:', this.ctrl.options)
         } else {
           console.error('No data in response:', res)
-          uni.showToast({
-            title: 'No warehouses found',
-            icon: 'none'
-          })
+          this.$msg('No warehouses found')
         }
       } catch (error) {
         console.error('Failed to fetch warehouse list:', error)
-        uni.showToast({
-          title: 'Failed to load warehouses',
-          icon: 'none'
-        })
+        this.$msg('Failed to load warehouses')
       }
     },
     showPicker() {

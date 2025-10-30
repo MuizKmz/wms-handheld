@@ -184,11 +184,7 @@ export default {
       if (this.debugModeEnabled) {
         hardwareScanner.disableDebugMode()
         this.debugModeEnabled = false
-        uni.showToast({
-          title: '🐛 Debug OFF',
-          icon: 'none',
-          duration: 2000
-        })
+        this.$msg('🐛 Debug OFF')
       } else {
         const result = hardwareScanner.enableDebugMode()
         if (result.success) {
@@ -210,11 +206,7 @@ export default {
         this.stopClipboardPolling()
         hardwareScanner.stopScan()
         this.isHardwareScanning = false
-        uni.showToast({
-          title: '⏹️ Hardware Scan Stopped',
-          icon: 'none',
-          duration: 1500
-        })
+        this.$msg('⏹️ Hardware Scan Stopped')
       } else {
         // Start hardware scanning
         const result = hardwareScanner.startScan((barcode, barcodeType) => {
@@ -225,11 +217,7 @@ export default {
           this.isHardwareScanning = true
           this.startClipboardPolling()
           
-          uni.showToast({
-            title: '🔍 Hardware Scan Active - Use Trigger',
-            icon: 'success',
-            duration: 2000
-          })
+          this.$msg('🔍 Hardware Scan Active - Use Trigger', 'center', 2000)
         } else {
           uni.showModal({
             title: '❌ Scanner Error',
@@ -354,11 +342,7 @@ export default {
       console.log('📦 Hardware scanned:', barcode, 'Type:', barcodeType)
       
       // Show toast feedback
-      uni.showToast({
-        title: `Scanned: ${barcode.substring(0, 15)}...`,
-        icon: 'success',
-        duration: 800
-      })
+      this.$msg(`Scanned: ${barcode}`, 'center', 1500)
       
       // Determine tag type based on barcode type
       // 1: EPC/RFID, 2: QR Code, 3: Barcode
@@ -379,11 +363,7 @@ export default {
      */
     onClear() {
       this.clear()
-      uni.showToast({
-        title: '🧹 Cleared all tags',
-        icon: 'none',
-        duration: 1500
-      })
+      this.$msg('🧹 Cleared all tags')
     },
     inventoryTrigger() {
       // this.$emit('onScanUpdate', {})
@@ -537,8 +517,8 @@ export default {
   :deep(.u-button) {
     border-radius: 12px !important;
     font-weight: 600 !important;
-    font-size: 14px !important;
-    padding: 14px 0 !important;
+    font-size: 11px !important;
+    padding: 14px 6px !important;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     transition: all 0.2s ease;
 
@@ -546,6 +526,13 @@ export default {
       transform: translateY(1px);
       box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
     }
+  }
+
+  :deep(.u-button__text) {
+    font-size: 11px !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
   }
 
   :deep(.u-button--success) {

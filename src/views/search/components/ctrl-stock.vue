@@ -182,10 +182,7 @@ export default {
 
     async confirmStockReturn() {
       if (this.stockReturnTags.length <= 0) {
-        uni.showToast({
-          title: 'No tags to stock return',
-          icon: 'none'
-        })
+        this.$msg('No tags to stock return')
         return
       }
 

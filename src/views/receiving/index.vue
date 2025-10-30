@@ -144,10 +144,7 @@ export default {
   methods: {
     async onAddProduct() {
       if (!this.receivingForm.orderId) {
-        uni.showToast({
-          title: 'Please scan DO/PO first to load order',
-          icon: 'none'
-        })
+        this.$msg('Please scan DO/PO first to load order')
         return
       }
       
@@ -191,34 +188,22 @@ export default {
           uni.hideLoading()
           
           if (res.success || res.data) {
-            uni.showToast({
-              title: 'Receiving saved successfully',
-              icon: 'success'
-            })
+            this.$msg('Receiving saved successfully')
             
             // Reset form and navigate back
             setTimeout(() => {
               this.$router.push('/views/receiving/list')
             }, 1000)
           } else {
-            uni.showToast({
-              title: res.message || 'Failed to save receiving',
-              icon: 'none'
-            })
+            this.$msg(res.message || 'Failed to save receiving')
           }
         } catch (error) {
           uni.hideLoading()
           console.error('Save receiving error:', error)
-          uni.showToast({
-            title: 'Failed to save receiving',
-            icon: 'none'
-          })
+          this.$msg('Failed to save receiving')
         }
       } else {
-        uni.showToast({
-          title: 'Please fill all required fields',
-          icon: 'none'
-        })
+        this.$msg('Please fill all required fields')
       }
     },
 
@@ -230,10 +215,7 @@ export default {
       let validateReceivingProducts = this.receivingProducts.length > 0
       
       if (!validateReceivingProducts) {
-        uni.showToast({
-          title: 'Please add at least one product',
-          icon: 'none'
-        })
+        this.$msg('Please add at least one product')
       }
 
       return validateReceivingCode && validateDoNumber && validateSupplierCode && validateStockInPurpose && validateReceivingProducts

@@ -95,10 +95,7 @@ export default {
         }
       } catch (error) {
         console.error('Failed to fetch supplier list:', error)
-        uni.showToast({
-          title: 'Failed to load suppliers',
-          icon: 'none'
-        })
+        this.$msg('Failed to load suppliers')
       }
     },
 

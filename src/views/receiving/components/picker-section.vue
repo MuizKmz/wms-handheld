@@ -85,18 +85,12 @@ export default {
         }
       } catch (error) {
         console.error('Failed to fetch section list:', error)
-        uni.showToast({
-          title: 'Failed to load sections',
-          icon: 'none'
-        })
+        this.$msg('Failed to load sections')
       }
     },
     showPicker() {
       if (!this.receivingForm.rackId) {
-        uni.showToast({
-          title: 'Please select rack first',
-          icon: 'none'
-        })
+        this.$msg('Please select rack first')
         return
       }
       

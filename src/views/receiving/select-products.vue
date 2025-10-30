@@ -94,10 +94,7 @@ export default {
       } catch (error) {
         uni.hideLoading()
         console.error('Failed to load products:', error)
-        uni.showToast({
-          title: 'Failed to load products',
-          icon: 'none'
-        })
+        this.$msg('Failed to load products')
       }
     },
     
@@ -121,20 +118,14 @@ export default {
       const products = Object.values(this.selectedProducts)
       
       if (products.length === 0) {
-        uni.showToast({
-          title: 'Please select at least one product',
-          icon: 'none'
-        })
+        this.$msg('Please select at least one product')
         return
       }
       
       // Update receiving products in store
       this.receivingProducts = products
       
-      uni.showToast({
-        title: `${products.length} product(s) added`,
-        icon: 'success'
-      })
+      this.$msg(`${products.length} product(s) added`)
       
       // Go back to receiving form
       setTimeout(() => {

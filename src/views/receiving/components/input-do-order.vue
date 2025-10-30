@@ -125,23 +125,14 @@ export default {
             this.receivingForm.supplierName = order.supplier?.supplierName || ''
           }
           
-          uni.showToast({
-            title: 'Order loaded successfully',
-            icon: 'success'
-          })
+          this.$msg('Order loaded successfully')
         } else {
-          uni.showToast({
-            title: 'Order not found',
-            icon: 'none'
-          })
+          this.$msg('Order not found')
         }
       } catch (error) {
         uni.hideLoading()
         console.error('Failed to fetch order:', error)
-        uni.showToast({
-          title: 'Failed to load order',
-          icon: 'none'
-        })
+        this.$msg('Failed to load order')
       }
     },
     
