@@ -1,67 +1,71 @@
 <template>
   <view v-if="stockInForm.receivingCode" class="tags-section">
     <view class="tags-header">
-      <view class="wms-flex-row wms-justify-center wms-items-center inventory-title">
-        <up-text :bold="true" prefixIcon="tags" size="12" text="Scanned EPCs"></up-text>
-        <view class="wms-flex-row wms-justify-center wms-items-center">
-          <view class="wms-flex-row wms-justify-between wms-items-center wms-gap-4 wms-ml-4">
-            <up-button :hairline="false" :plain="true" :throttleTime="1000" icon="trash-fill" shape="circle" size="mini"
-                       text="" type="info"
-                       @click="onClear"></up-button>
-            <up-button :hairline="false" :plain="true" :throttleTime="1000" icon="reload" shape="circle" size="mini"
-                       text="" type="info"
-                       @click="onReload"></up-button>
-          </view>
+      <view class="tags-title-wrapper">
+        <up-icon name="tags" size="16" color="#667eea"></up-icon>
+        <text class="tags-title-text">Scanned EPCs</text>
+      </view>
+      <view class="tags-actions">
+        <view class="tags-count">
+          <text class="count-badge">{{ scannedTags.length }}</text>
         </view>
+        <up-button :hairline="false" :plain="true" :throttleTime="1000" icon="trash-fill" shape="circle" size="mini"
+                   text="" type="info"
+                   @click="onClear"></up-button>
+        <up-button :hairline="false" :plain="true" :throttleTime="1000" icon="reload" shape="circle" size="mini"
+                   text="" type="info"
+                   @click="onReload"></up-button>
       </view>
     </view>
-    <up-line></up-line>
-    <scroll-view class="table-wrapper" scroll-x="false">
-      <up-row align="center" class="table-header" justify="start">
-        <up-col span="1" textAlign="center">
-          <up-text align="center" class="header-text" line="3" text="#"></up-text>
-        </up-col>
-        <up-col span="5" textAlign="center">
-          <up-text align="center" class="header-text" line="3" text="EPC Code"></up-text>
-        </up-col>
-        <up-col span="3" textAlign="center">
-          <up-text align="center" class="header-text" line="3" text="SKU Code"></up-text>
-        </up-col>
-        <up-col span="3" textAlign="center">
-          <up-text align="center" class="header-text" line="3" text="Product"></up-text>
-        </up-col>
-      </up-row>
-      <up-line class="separator-line"></up-line>
-      <scroll-view class="table-content" scroll-y="true">
-        <view v-for="(item, index) in tagList" :key="index" class="table-row">
-          <up-row :class="getRowClass(item)" align="center" justify="start">
-            <up-col span="1">
-              <up-text :text="(index + 1).toString()" align="center" class="table-text" line="1"></up-text>
-            </up-col>
-            <up-col span="5">
-              <up-text :text="item.epcCode || item.tagCode" align="left" class="table-text text-width-limit"
-                       line="2"></up-text>
-            </up-col>
-            <up-col span="3">
-              <up-text :text="item.skuCode || '--'" align="center" class="table-text"
-                       line="2"></up-text>
-            </up-col>
-            <up-col span="3">
-              <up-text :text="item.productName || '--'" align="left" class="table-text"
-                       line="2"></up-text>
-            </up-col>
-          </up-row>
-        </view>
-        <view v-if="tagList.length<=0" class="no-data-wrapper">No tags scanned</view>
-      </scroll-view>
-    </scroll-view>
+    
+    <up-line color="#f0f2f5" margin="12px 0"></up-line>
+    
+    <view class="table-container">
+      <view class="table-wrapper">
+        <scroll-view 
+          class="table-scroll" 
+          scroll-x="true" 
+          scroll-y="true"
+          :scroll-with-animation="true"
+        >
+          <!-- Table Header -->
+          <view class="table-header">
+            <view class="table-cell header-cell index-col">#</view>
+            <view class="table-cell header-cell epc-col">EPC Code</view>
+            <view class="table-cell header-cell sku-col">SKU Code</view>
+            <view class="table-cell header-cell product-col">Product</view>
+          </view>
+          
+          <!-- Table Body -->
+          <view v-for="(item, index) in tagList" :key="index" class="table-row" :class="getRowClass(item)">
+            <view class="table-cell index-col">
+              <text class="index-text">{{ index + 1 }}</text>
+            </view>
+            <view class="table-cell epc-col">
+              <text class="epc-text">{{ item.epcCode || item.tagCode }}</text>
+            </view>
+            <view class="table-cell sku-col">
+              <text class="sku-text">{{ item.skuCode || '--' }}</text>
+            </view>
+            <view class="table-cell product-col">
+              <text class="product-text">{{ item.productName || '--' }}</text>
+            </view>
+          </view>
+          
+          <!-- No Data -->
+          <view v-if="tagList.length <= 0" class="no-data-wrapper">
+            <text class="no-data-text">No tags scanned</text>
+          </view>
+        </scroll-view>
+      </view>
+    </view>
+    
     <template v-if="scannedTags.length > 0">
-      <up-line></up-line>
-      <view class="total-tags wms-flex-row wms-justify-center wms-items-center">
-        {{ scannedTags.length }} tags scanned, {{ tagList.length }} tags shown
+      <up-line color="#f0f2f5" margin="12px 0"></up-line>
+      <view class="tags-footer">
+        <text class="footer-text">{{ scannedTags.length }} tags scanned, {{ tagList.length }} tags shown</text>
       </view>
     </template>
-
   </view>
 </template>
 <script>
@@ -179,181 +183,193 @@ export default {
 </script>
 <style lang="scss" scoped>
 .tags-section {
-  //flex: 1;
-  background-color: #fff;
-  border-radius: 8px;
-  padding: 6px 6px 0 6px;
-  margin-bottom: 12px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  min-height: 100px;
-  //width: 100vw;
-  overflow-x: auto;
-
-  .total-tags {
-    font-size: 10px;
-    color: #999;
-    padding: 10px 0;
-    //width: 100vw;
-    text-align: center;
-  }
+  background-color: #ffffff;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 
   .tags-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
 
-    :deep(.u-line) {
-      width: 130vw !important;
+    .tags-title-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+
+      .tags-title-text {
+        font-size: 15px;
+        font-weight: 600;
+        color: #333;
+      }
     }
 
-    .inventory-title {
+    .tags-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+
+      .tags-count {
+        .count-badge {
+          background-color: #667eea;
+          color: #fff;
+          padding: 2px 10px;
+          border-radius: 12px;
+          font-size: 12px;
+          font-weight: 600;
+        }
+      }
+    }
+  }
+
+  .table-container {
+    width: 100%;
+    overflow: hidden;
+
+    .table-wrapper {
+      width: 100%;
+      border-radius: 8px;
+      border: 1px solid #e8eaed;
+      overflow: hidden;
+
+      .table-scroll {
+        max-height: 400px;
+        width: 100%;
+
+        .table-header,
+        .table-row {
+          display: flex;
+          min-width: 700px;
+          width: max-content;
+        }
+
+        .table-header {
+          background-color: #f8f9fa;
+          border-bottom: 2px solid #e8eaed;
+          position: sticky;
+          top: 0;
+          z-index: 10;
+
+          .header-cell {
+            font-weight: 600;
+            color: #5f6368;
+            padding: 12px 8px;
+            font-size: 12px;
+            text-align: center;
+          }
+        }
+
+        .table-row {
+          border-bottom: 1px solid #f0f2f5;
+          transition: background-color 0.2s;
+
+          &:last-child {
+            border-bottom: none;
+          }
+
+          &:hover {
+            background-color: #f8f9fa;
+          }
+
+          &.text-success {
+            background-color: rgba(40, 167, 69, 0.05);
+          }
+
+          &.text-warning {
+            background-color: rgba(255, 193, 7, 0.05);
+          }
+        }
+
+        .table-cell {
+          padding: 12px 8px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 13px;
+          color: #333;
+          word-break: break-word;
+          flex-shrink: 0;
+
+          &.index-col {
+            width: 50px;
+
+            .index-text {
+              font-weight: 500;
+              color: #5f6368;
+            }
+          }
+
+          &.epc-col {
+            width: 240px;
+            justify-content: flex-start;
+
+            .epc-text {
+              font-family: 'Courier New', monospace;
+              font-size: 11px;
+              color: #333;
+              word-break: break-all;
+              text-align: left;
+              line-height: 1.4;
+              width: 100%;
+            }
+          }
+
+          &.sku-col {
+            width: 140px;
+
+            .sku-text {
+              font-family: 'Courier New', monospace;
+              font-size: 12px;
+              color: #5f6368;
+            }
+          }
+
+          &.product-col {
+            width: 180px;
+            justify-content: flex-start;
+
+            .product-text {
+              text-align: left;
+              line-height: 1.4;
+              font-size: 12px;
+              width: 100%;
+            }
+          }
+        }
+
+        .no-data-wrapper {
+          padding: 40px 20px;
+          text-align: center;
+          width: 100%;
+
+          .no-data-text {
+            color: #999;
+            font-size: 14px;
+          }
+        }
+      }
+    }
+  }
+
+  .tags-footer {
+    text-align: center;
+    padding: 8px 0;
+
+    .footer-text {
       font-size: 12px;
-      font-weight: bold;
-      margin-bottom: 4px;
-
-      .valid-switch {
-        margin-right: 4px !important;
-      }
-
-      :deep(.u-text__value) {
-        //font-size: 12px !important;
-        //font-weight: 700 !important;
-        //text-align: center !important;
-        //width: 100px;
-      }
-    }
-  }
-
-
-  .table-wrapper {
-    overflow-x: auto;
-    white-space: nowrap;
-  }
-
-  .table-header {
-    width: 130vw;
-
-    .header-text {
-
-      font-size: 12px;
-      font-weight: bold;
-      //text-align: center;
-      margin: 4px 0px !important;
-
-      :deep(.u-text__value) {
-        font-size: 10px !important;
-        font-weight: bold !important;
-        //text-align: center !important;
-        //width: 80px;
-      }
-    }
-  }
-
-  .separator-line {
-    width: 130vw !important;
-    margin: 0px !important;
-    background-color: #f0f0f0 !important;
-  }
-
-  //.table-text {
-  //  font-size: 11px;
-  //  word-wrap: break-word;
-  //  overflow-wrap: break-word;
-  //  word-break: break-word;
-  //  /* Smaller font for more columns */
-  //}
-
-  .text-danger {
-    color: $uni-color-error;
-
-    :deep(.u-text__value) {
-      color: $uni-color-error !important;
-    }
-  }
-
-  .text-warning {
-    color: $uni-color-warning;
-
-    :deep(.u-text__value) {
-      color: $uni-color-warning !important;
+      color: #999;
     }
   }
 
   .text-success {
-    color: $uni-color-success;
-
-    :deep(.u-text__value) {
-      color: $uni-color-success !important;
-    }
+    background-color: rgba(40, 167, 69, 0.05);
   }
 
-  .text-primary {
-    color: $uni-color-primary;
-
-    :deep(.u-text__value) {
-      color: $uni-color-primary !important;
-    }
-  }
-
-  .text-disabled {
-    color: $uni-text-color-disable;
-
-    :deep(.u-text__value) {
-      color: $uni-text-color-disable !important;
-    }
-  }
-
-  .table-content {
-    //min-height: 100px;
-    overflow-y: auto;
-    width: 130vw;
-
-    .table-row {
-      width: 130vw;
-      border-bottom: 1px solid #f0f0f0;
-      padding: 2px 0;
-
-      &:last-child {
-        border-bottom: none;
-      }
-
-      :deep(.u-checkbox-label--left) {
-        justify-content: center !important;
-      }
-    }
-
-    .table-text {
-      font-size: 10px;
-      //padding: 4px 0;
-      //text-align: center;
-      word-wrap: break-word;
-      overflow-wrap: break-word;
-      word-break: break-word;
-      //width: 50px;
-
-      :deep(.u-text__value) {
-        font-size: 10px !important;
-        //text-align: center !important;
-        //width: 80px;
-      }
-    }
-
-    .text-width-limit {
-      :deep(.u-text__value) {
-        width: 70px !important;
-      }
-    }
-
-    .epc {
-      word-break: break-all;
-      text-align: left;
-      padding-left: 5px;
-    }
-
-    .no-data-wrapper {
-      text-align: center;
-      font-size: 12px;
-      color: #999;
-      padding: 10px 0;
-      width: 100vw;
-    }
+  .text-warning {
+    background-color: rgba(255, 193, 7, 0.05);
   }
 }
 </style>

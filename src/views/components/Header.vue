@@ -1,59 +1,33 @@
 <template>
-  <wms-status-bar/>
-  <header v-if="true" class="header">
+  <wms-status-bar bgColor="#ffffff"/>
+  <header class="header">
     <up-navbar
         :safeAreaInsetTop="true"
-        bgColor="#f5e1c1"
+        bgColor="#ffffff"
         leftIcon=""
         leftText=""
     >
       <template #left>
-        <!-- Back Button (optional) -->
-        <button v-if="showBack" class="icon-btn" @click="goBack">
-          <image alt="back" class="icon-img" src="/static/back.png"/>
-        </button>
-        <template v-else></template>
+        <view v-if="showBack" class="nav-btn back-btn" @click="goBack">
+          <image src="/static/images/icons/back.svg" class="header-icon" mode="aspectFit"/>
+        </view>
       </template>
       <template #center>
-        <!-- Page Title with Icon -->
-        <div :class="titleClass" class="title-container">
-          <h1 class="title">{{ pageTitle }}</h1>
-        </div>
+        <view :class="titleClass" class="title-container">
+          <text class="page-title">{{ pageTitle }}</text>
+        </view>
       </template>
       <template #right>
-        <!-- Notification Bell (Navigates to Notifications Page) -->
-        <button v-if="showNotification" class="icon-btn" @click="goToNotifications">
-          <image alt="notification" class="icon-img" src="/static/notification.png"/>
-        </button>
-
-        <!-- Log Out Button -->
-        <button v-if="showLogOut" class="icon-btn" @click="goToLogOut">
-          <image alt="logout" class="icon-img" src="/static/logout.png"/>
-        </button>
+        <view class="right-actions">
+          <view v-if="showNotification" class="nav-btn" @click="goToNotifications">
+            <image src="/static/images/icons/bell.svg" class="header-icon" mode="aspectFit"/>
+          </view>
+          <view v-if="showLogOut" class="nav-btn logout-btn" @click="goToLogOut">
+            <image src="/static/images/icons/power.svg" class="header-icon" mode="aspectFit"/>
+          </view>
+        </view>
       </template>
     </up-navbar>
-  </header>
-  <header v-if="false" class="header">
-    <!-- Back Button (optional) -->
-    <button v-if="showBack" class="icon-btn" @click="goBack">
-      <image alt="back" class="icon-img" src="/static/back.png"/>
-    </button>
-
-    <!-- Page Title with Icon -->
-    <div class="title-container">
-      <h1 class="title">{{ pageTitle }}</h1>
-    </div>
-
-    <!-- Notification Bell (Navigates to Notifications Page) -->
-    <button v-if="showNotification" class="icon-btn" @click="goToNotifications">
-      <image alt="notification" class="icon-img" src="/static/notification.png"/>
-    </button>
-
-    <!-- Log Out Button -->
-    <button v-if="showLogOut" class="icon-btn" @click="goToLogOut">
-      <image alt="logout" class="icon-img" src="/static/logout.png"/>
-    </button>
-
   </header>
 </template>
 
@@ -106,57 +80,55 @@ export default {
 
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
 .header {
-  background: #f5e1c1;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 10px 15px;
-  font-size: 10px;
-  font-weight: bolder;
-  color: #000;
-  font-family: 'Segoe UI', Arial, sans-serif;
-  border: none;
+  background: #ffffff;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+  border-bottom: 1px solid #e8eaed;
 }
 
 .title-container {
   display: flex;
   align-items: center;
-  flex: 1;
   justify-content: center;
+  flex: 1;
 }
 
 .title-left {
-  justify-content: left;
-  margin-left: 16px;
+  justify-content: flex-start;
+  margin-left: 12px;
 }
 
-.header-icon {
-  width: 15px;
-  height: 15px;
-  margin-right: 8px;
+.page-title {
+  font-size: 17px;
+  font-weight: 600;
+  color: #4a90e2;
+  margin: 0;
 }
 
-.icon-btn {
-  background: none;
+.right-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.nav-btn {
   width: 40px;
-  /* Keep button size manageable */
   height: 40px;
-  cursor: pointer;
+  border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-left: 2px;
+  cursor: pointer;
+  transition: background 0.2s;
 }
 
-.icon-img {
-  width: 30px;
-  /* Adjust size as needed */
-  height: 30px;
-  object-fit: contain;
-  /* Ensures the image keeps its aspect ratio */
-  /* Remove unwanted borders */
-  display: block;
+.nav-btn:active {
+  background: #f5f5f5;
+}
+
+.header-icon {
+  width: 24px;
+  height: 24px;
 }
 </style>

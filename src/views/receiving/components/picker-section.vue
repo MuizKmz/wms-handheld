@@ -126,25 +126,44 @@ export default {
 <style lang="scss" scoped>
 .form-item {
   display: flex;
-  align-items: center;
-  padding: 24rpx 32rpx;
-  background-color: #fff;
-  border-bottom: 1rpx solid #eee;
+  flex-direction: column;
+  margin-bottom: 16px;
+  width: 100%;
 
   .label {
-    font-size: 28rpx;
+    font-weight: 600;
+    display: block;
+    margin-bottom: 8px;
+    font-size: 14px;
     color: #333;
-    width: 180rpx;
-    flex-shrink: 0;
   }
 
   .input-field {
-    flex: 1;
-    font-size: 28rpx;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    padding: 12px 14px;
+    font-size: 14px;
+    border: 1px solid #e8eaed;
+    cursor: pointer;
   }
 
   .input-right-icon {
     color: #999;
   }
+}
+
+:deep(.u-input__content__field-wrapper__field) {
+  font-size: 14px !important;
+  margin-left: 6px !important;
+}
+
+:deep(.u-input__content) {
+  padding: 0 !important;
+  background: transparent !important;
+  border: none !important;
+}
+
+:deep(.u-input--disabled) {
+  opacity: 0.6;
 }
 </style>

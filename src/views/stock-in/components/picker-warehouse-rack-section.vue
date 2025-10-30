@@ -215,36 +215,44 @@ export default {
   }
 
   .form-item {
-    margin-bottom: 4px;
+    margin-bottom: 16px;
+    width: 100%;
 
     .label {
       font-weight: 600;
       display: block;
-      margin-bottom: 4px;
-      font-size: 13px;
+      margin-bottom: 8px;
+      font-size: 14px;
+      color: #333;
     }
 
     .input-field,
     .select-field {
-      background-color: #f5f5f5;
-      border-radius: 4px;
-      padding: 8px 10px;
-      font-size: 12px;
+      background-color: #f8f9fa;
+      border-radius: 8px;
+      padding: 12px 14px;
+      font-size: 14px;
+      border: 1px solid #e8eaed;
+      transition: all 0.2s ease;
 
-      :deep(.input-right-icon) {
-        .u-icon__icon {
-          font-size: 12px !important;
-        }
-
-        margin-right: 4px !important;
+      &:focus-within {
+        background-color: #fff;
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
       }
     }
   }
 }
 
 :deep(.u-input__content__field-wrapper__field) {
-  font-size: 12px !important;
+  font-size: 14px !important;
   margin-left: 6px !important;
+}
+
+:deep(.u-input__content) {
+  padding: 0 !important;
+  background: transparent !important;
+  border: none !important;
 }
 
 :deep(.u-toolbar__title) {

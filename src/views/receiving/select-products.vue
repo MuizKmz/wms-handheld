@@ -151,6 +151,8 @@ export default {
   display: flex;
   flex-direction: column;
   background-color: #f5f5f5;
+  margin-top: 60px;
+  padding-top: 24px;
 }
 
 .product-list {

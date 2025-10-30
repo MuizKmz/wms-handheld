@@ -9,6 +9,21 @@ import WebSocketManager from './utils/kit/websocket.js'
 export default {
   async onLaunch() {
     console.log('App Launch')
+    
+    // Override uni.showToast to show longer duration for error messages
+    const originalShowToast = uni.showToast
+    uni.showToast = function(options) {
+      if (options && options.title) {
+        // Calculate duration based on message length
+        const minDuration = 2500
+        const maxDuration = 5000
+        const calculatedDuration = Math.max(minDuration, Math.min(options.title.length * 80, maxDuration))
+        
+        options.duration = options.duration || calculatedDuration
+      }
+      return originalShowToast.call(this, options)
+    }
+    
     this.init()
   },
   data() {
@@ -129,6 +144,10 @@ export default {
 @import "./static/styles/font.scss";
 @import "./static/styles/codefun.scss";
 @import "./static/styles/common.scss";
+
+page {
+  background-color: #f5f7fa;
+}
 </style>
 <!--<script lang="ts" setup>-->
 <!--</script>-->

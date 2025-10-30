@@ -2,11 +2,11 @@
   <!-- Header Component -->
   <HeaderComponent :pageTitle="pageTitle" :showBack="true" :showLogOut="true" :showNotification="true"/>
 
-  <div class="image-wrapper">
+  <!-- <div class="image-wrapper">
     <div class="image-container">
       <image :src="topImg" alt="Stock-in"/>
     </div>
-  </div>
+  </div> -->
 
   <view v-if="!ctrl.isLoading" class="page">
     <!-- Details Section -->

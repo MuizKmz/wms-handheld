@@ -1,7 +1,7 @@
 <template>
-  <footer class="footer">
-    <p>Version {{ versionCode }} | © 2024 - {{ currentYear }} InStockly. All rights reserved.</p>
-  </footer>
+  <view class="footer">
+    <text class="footer-text">Version {{ versionCode }} | © 2024 - {{ currentYear }} InStockly. All rights reserved.</text>
+  </view>
 </template>
 <script>
 export default {
@@ -48,21 +48,31 @@ export default {
   }
 }
 </script>
-<style scoped>
+<style lang="scss" scoped>
 .footer {
-  background: #f5e1c1;
+  background: #ffffff;
   text-align: center;
-  padding: 5px;
+  padding: 16px;
   font-size: 12px;
-  position: absolute;
+  position: fixed;
   bottom: 0;
+  left: 0;
+  right: 0;
   width: 100%;
-  height: auto;
+  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.06);
+  border-top: 1px solid #e8eaed;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.footer p {
-  color: black;
-  size: 20px;
+.footer-text {
+  color: #666;
+  font-size: 12px;
+  text-align: center;
+  display: block;
+  width: 100%;
 }
 </style>
   

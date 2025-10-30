@@ -1,7 +1,7 @@
 <template>
   <view class="action-section">
-    <!-- DEBUG: Temporary button to discover broadcast action -->
-    <up-row v-if="true" class="debug-row" justify="center" style="margin-bottom: 10px;">
+    <!-- DEBUG: Commented out for production -->
+    <!-- <up-row v-if="true" class="debug-row" justify="center" style="margin-bottom: 10px;">
       <up-col span="6">
         <up-button 
           :type="debugModeEnabled ? 'error' : 'info'"
@@ -9,18 +9,18 @@
           size="mini"
           @click="toggleDebugMode"></up-button>
       </up-col>
-    </up-row>
+    </up-row> -->
     
     <up-row class="action-buttons" gutter="10" justify="center">
       <up-col span="3">
         <up-button 
           :disabled="!stockInForm.receivingCode" 
-          :text="hardwareScanText" 
           :type="isHardwareScanning ? 'error' : 'success'"
           :throttleTime="1000" 
           icon="scan" 
-          shape="circle" 
+          shape="circle"
           size="small"
+          :text="hardwareScanText"
           @click="toggleHardwareScan"></up-button>
       </up-col>
       <up-col span="3">
@@ -28,9 +28,9 @@
           :disabled="!stockInForm.receivingCode || isHardwareScanning" 
           :throttleTime="1000" 
           icon="camera" 
-          shape="circle" 
+          shape="circle"
           size="small"
-          text="QR SCAN"
+          text="QR Scan"
           type="warning"
           @click="onScanCode"></up-button>
       </up-col>
@@ -39,9 +39,9 @@
           :disabled="!stockInForm.receivingCode" 
           :throttleTime="1000" 
           icon="checkmark-circle" 
-          shape="circle" 
+          shape="circle"
           size="small"
-          text="STOCK IN"
+          text="Stock In"
           type="primary"
           @click="confirmStockIn"></up-button>
       </up-col>
@@ -49,9 +49,9 @@
         <up-button 
           :throttleTime="1000" 
           icon="trash" 
-          shape="circle" 
+          shape="circle"
           size="small"
-          text="CLEAR"
+          text="Clear"
           type="info"
           @click="onClear"></up-button>
       </up-col>
@@ -135,23 +135,23 @@ export default {
       return this.inventoryInProgress ? 'STOP SCAN' : 'START SCAN'
     },
     hardwareScanText() {
-      return this.isHardwareScanning ? 'STOP HW' : 'START HW'
+      return this.isHardwareScanning ? 'Stop HW' : 'Start HW'
     }
   },
   async mounted() {
-    console.log('ctrl-stock mounted')
+    // console.log('ctrl-stock mounted')
     // Initialize hardware scanner
     // #ifdef APP-PLUS
     const initResult = hardwareScanner.init()
     if (initResult.success) {
-      console.log('✅ Hardware scanner ready')
+      // console.log('✅ Hardware scanner ready')
     } else {
       console.warn('⚠️ Hardware scanner init failed:', initResult.message)
     }
     // #endif
   },
   beforeUnmount() {
-    console.log('ctrl-stock unmounted')
+    // console.log('ctrl-stock unmounted')
     // Stop hardware scanning if active
     if (this.isHardwareScanning) {
       hardwareScanner.stopScan()
@@ -244,7 +244,7 @@ export default {
      */
     startClipboardPolling() {
       // #ifdef APP-PLUS
-      console.log('📋 Starting clipboard polling...')
+      // console.log('📋 Starting clipboard polling...')
       this.lastClipboardContent = ''
       
       // Poll clipboard every 300ms
@@ -263,7 +263,7 @@ export default {
                 clipboardText.length > 0 && 
                 clipboardText !== this.lastClipboardContent) {
               
-              console.log('📋 Clipboard detected:', clipboardText)
+              // console.log('📋 Clipboard detected:', clipboardText)
               this.lastClipboardContent = clipboardText
               
               // Process as scanned barcode
@@ -289,20 +289,20 @@ export default {
       if (this.clipboardCheckInterval) {
         clearInterval(this.clipboardCheckInterval)
         this.clipboardCheckInterval = null
-        console.log('📋 Clipboard polling stopped')
+        // console.log('📋 Clipboard polling stopped')
       }
     },
     /**
      * Handle scanner input blur event
      */
     onScannerBlur() {
-      console.log('⚠️ Scanner input lost focus, re-focusing...')
+      // console.log('⚠️ Scanner input lost focus, re-focusing...')
       // Re-focus immediately by toggling the focus flag
       if (this.isHardwareScanning) {
         this.scannerInputFocus = false
         this.$nextTick(() => {
           this.scannerInputFocus = true
-          console.log('✅ Scanner input re-focused')
+          // console.log('✅ Scanner input re-focused')
         })
       }
     },
@@ -310,7 +310,7 @@ export default {
      * Handle scanner input changes (keyboard wedge mode)
      */
     onScannerInput() {
-      console.log('⌨️ Scanner input:', this.scannerBuffer)
+      // console.log('⌨️ Scanner input:', this.scannerBuffer)
       
       // Clear existing timeout
       if (this.scannerTimeout) {
@@ -320,7 +320,7 @@ export default {
       // Wait 200ms after last keystroke to process (scanner types very fast)
       this.scannerTimeout = setTimeout(() => {
         if (this.scannerBuffer && this.scannerBuffer.length > 0) {
-          console.log('✅ Barcode complete:', this.scannerBuffer)
+          // console.log('✅ Barcode complete:', this.scannerBuffer)
           this.onHardwareScanResult(this.scannerBuffer, 'keyboard')
           
           // Clear buffer and re-focus for next scan
@@ -331,7 +331,7 @@ export default {
             this.scannerInputFocus = false
             this.$nextTick(() => {
               this.scannerInputFocus = true
-              console.log('🔄 Ready for next scan')
+              // console.log('🔄 Ready for next scan')
             })
           })
         }
@@ -513,33 +513,60 @@ export default {
 <style lang="scss" scoped>
 .action-section {
   position: fixed;
-  bottom: -1px;
-  //bottom: 10px;
+  bottom: 0;
   left: 50%;
   transform: translateX(-50%);
   width: 100%;
-  background: #f5e1c1;
-  padding: 10px;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  background: linear-gradient(180deg, #ffffff 0%, #f5f7fa 100%);
+  padding: 16px 20px 20px;
+  box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.08);
   display: flex;
   flex-direction: column;
   align-items: center;
-  //margin-bottom: 6px;
+  z-index: 100;
+  border-top: 1px solid #e8eaed;
 }
 
 .action-buttons {
   width: 100%;
   display: flex;
   justify-content: space-between;
-  //margin-bottom: 10px;
-  margin-bottom: 4px;
-}
+  gap: 12px;
+  margin-bottom: 0;
 
-//.confirm-btn {
-//  width: 100%;
-//  font-size: 16px;
-//  border-radius: 100px;
-//  min-width: 150px;
-//}
+  :deep(.u-button) {
+    border-radius: 12px !important;
+    font-weight: 600 !important;
+    font-size: 14px !important;
+    padding: 14px 0 !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    transition: all 0.2s ease;
+
+    &:active {
+      transform: translateY(1px);
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+    }
+  }
+
+  :deep(.u-button--success) {
+    background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%) !important;
+  }
+
+  :deep(.u-button--error) {
+    background: linear-gradient(135deg, #fa709a 0%, #fee140 100%) !important;
+  }
+
+  :deep(.u-button--warning) {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%) !important;
+  }
+
+  :deep(.u-button--primary) {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+  }
+
+  :deep(.u-button--info) {
+    background: linear-gradient(135deg, #a8b8d8 0%, #7e8ba3 100%) !important;
+  }
+}
 </style>
   
