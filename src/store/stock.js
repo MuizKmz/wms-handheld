@@ -117,9 +117,19 @@ export const useStockStore = defineStore('stock', {
                     return
                 }
                 let res = await api.getOrderInfo(this.stockOutForm.orderCode)
-                if (res.success) {
-                    // this.orderInfo = res.data
-                    this.orderProducts = res.data.products
+                if (res.success && res.data) {
+                    // Map orderItems to products with expected quantities
+                    this.orderProducts = res.data.orderItems.map(item => ({
+                        id: item.product.id,
+                        productId: item.product.id,
+                        productCode: item.product.productCode,
+                        productName: item.product.name,
+                        skuCode: item.product.skuCode,
+                        expectedQuantity: item.quantity,
+                        stockOutQuantity: 0,
+                        scannedQuantity: 0
+                    }))
+                    console.log('📦 Order products loaded:', this.orderProducts)
                 }
                 resolve(res)
             })
@@ -162,11 +172,159 @@ export const useStockStore = defineStore('stock', {
                 
                 if (res.success && res.data && res.data.length > 0) {
                     console.log('✅ Found EPCs:', res.data)
-                    uni.showToast({
-                        title: `✅ Found ${res.data.length} EPC(s)`,
-                        icon: 'success',
-                        duration: 2000
+                    
+                    const invalidEpcs = []
+                    const alreadyScannedEpcs = []
+                    
+                    // Determine context: stock-in or stock-out
+                    // Check both products array AND form data to determine correct context
+                    const hasReceivingData = this.receivingProducts && this.receivingProducts.length > 0
+                    const hasOrderData = this.orderProducts && this.orderProducts.length > 0
+                    const hasDoNumber = this.stockInForm.doNumber && this.stockInForm.doNumber.length > 0
+                    const hasOrderCode = this.stockOutForm.orderCode && this.stockOutForm.orderCode.length > 0
+                    
+                    // Priority: If orderCode exists, we're in stock-out mode
+                    const isStockOut = hasOrderCode || (hasOrderData && !hasDoNumber)
+                    const isStockIn = !isStockOut && (hasDoNumber || hasReceivingData)
+                    
+                    console.log('🔍 Context Detection:', {
+                        hasReceivingData,
+                        hasOrderData,
+                        hasDoNumber,
+                        hasOrderCode,
+                        isStockIn,
+                        isStockOut
                     })
+                    
+                    // Validate EPCs based on context
+                    res.data.forEach(epc => {
+                        // Check if EPC is already in scannedTags (duplicate scan)
+                        const isAlreadyScanned = scannedTags.some(t => 
+                            t.epcCode === epc.epcCode || t.tagCode === epc.tagCode || t.epcCode === epc.tagCode
+                        )
+                        
+                        if (isAlreadyScanned) {
+                            alreadyScannedEpcs.push(epc)
+                        } else if (isStockIn && epc.status !== 'GENERATED') {
+                            // Stock-in: only GENERATED EPCs allowed
+                            invalidEpcs.push({...epc, reason: 'status', expectedStatus: 'GENERATED'})
+                        } else if (isStockOut && epc.status !== 'INBOUND') {
+                            // Stock-out: only INBOUND EPCs allowed
+                            invalidEpcs.push({...epc, reason: 'status', expectedStatus: 'INBOUND'})
+                        }
+                    })
+                    
+                    // Handle already scanned EPCs (duplicates)
+                    if (alreadyScannedEpcs.length > 0) {
+                        alreadyScannedEpcs.forEach(epc => {
+                            delete tagStore[epc.epcCode]
+                            delete tagStore[epc.tagCode]
+                        })
+                        
+                        uni.showModal({
+                            title: '⚠️ Already Scanned',
+                            content: `EPC ${alreadyScannedEpcs[0].epcCode} has already been scanned.\n\nPlease scan a different EPC.`,
+                            showCancel: false
+                        })
+                    }
+                    
+                    // Handle EPCs with invalid status
+                    if (invalidEpcs.length > 0) {
+                        invalidEpcs.forEach(epc => {
+                            delete tagStore[epc.epcCode]
+                            delete tagStore[epc.tagCode]
+                        })
+                        
+                        const epc = invalidEpcs[0]
+                        let errorMsg = ''
+                        
+                        if (isStockIn) {
+                            const statusMessages = {
+                                'INBOUND': 'This EPC is already stocked in (INBOUND).',
+                                'DELIVERED': 'This EPC has already been delivered (DELIVERED).',
+                                'RECEIVED': 'This EPC has status RECEIVED. Only GENERATED EPCs can be scanned.'
+                            }
+                            errorMsg = statusMessages[epc.status] || `This EPC has status ${epc.status}.`
+                            errorMsg += '\n\nOnly EPCs with GENERATED status can be scanned for stock-in.'
+                        } else if (isStockOut) {
+                            const statusMessages = {
+                                'GENERATED': 'This EPC has not been stocked in yet (GENERATED).',
+                                'DELIVERED': 'This EPC has already been delivered (DELIVERED).',
+                                'RECEIVED': 'This EPC has status RECEIVED. Only INBOUND EPCs can be scanned.'
+                            }
+                            errorMsg = statusMessages[epc.status] || `This EPC has status ${epc.status}.`
+                            errorMsg += '\n\nOnly EPCs with INBOUND status can be scanned for stock-out.'
+                        }
+                        
+                        uni.showModal({
+                            title: '❌ Invalid EPC Status',
+                            content: `EPC: ${epc.epcCode}\nStatus: ${epc.status}\n\n${errorMsg}`,
+                            showCancel: false
+                        })
+                        
+                        // Filter out invalid EPCs
+                        res.data = res.data.filter(epc => !invalidEpcs.some(inv => inv.epcCode === epc.epcCode) && !alreadyScannedEpcs.includes(epc))
+                        
+                        if (res.data.length === 0) {
+                            resolve({success: false, msg: 'Invalid EPC status'})
+                            return
+                        }
+                    }
+                    
+                    // Validate EPCs against receiving products (stock-in) or order products (stock-out)
+                    const productsToMatch = isStockIn ? this.receivingProducts : (isStockOut ? this.orderProducts : [])
+                    
+                    if (productsToMatch && productsToMatch.length > 0) {
+                        const allowedSkuCodes = productsToMatch.map(p => p.product?.skuCode || p.skuCode).filter(Boolean)
+                        console.log('🔍 Allowed SKU codes:', allowedSkuCodes)
+                        
+                        // Check each scanned EPC
+                        const skuMismatchEpcs = []
+                        res.data.forEach(epc => {
+                            if (epc.skuCode && !allowedSkuCodes.includes(epc.skuCode)) {
+                                skuMismatchEpcs.push(epc)
+                            }
+                        })
+                        
+                        if (skuMismatchEpcs.length > 0) {
+                            // Remove invalid EPCs from tagStore
+                            skuMismatchEpcs.forEach(epc => {
+                                delete tagStore[epc.epcCode]
+                                delete tagStore[epc.tagCode]
+                            })
+                            
+                            // Show error popup
+                            const invalidSkus = [...new Set(skuMismatchEpcs.map(e => e.skuCode))].join(', ')
+                            const allowedSkusText = allowedSkuCodes.join(', ')
+                            const contextText = isStockIn ? 'receiving' : 'order'
+                            
+                            uni.showModal({
+                                title: '❌ SKU Mismatch',
+                                content: `Scanned EPC does not match ${contextText}!\n\n` +
+                                         `Scanned SKU: ${invalidSkus}\n` +
+                                         `Expected SKU: ${allowedSkusText}\n\n` +
+                                         `Only EPCs matching the ${contextText} products can be scanned.`,
+                                showCancel: false
+                            })
+                            
+                            // Filter out invalid EPCs from the response
+                            res.data = res.data.filter(epc => !skuMismatchEpcs.includes(epc))
+                            
+                            // If all EPCs were invalid, return early
+                            if (res.data.length === 0) {
+                                resolve({success: false, msg: `Invalid EPC - SKU does not match ${contextText}`})
+                                return
+                            }
+                        }
+                    }
+                    
+                    if (res.data.length > 0) {
+                        uni.showToast({
+                            title: `✅ Found ${res.data.length} EPC(s)`,
+                            icon: 'success',
+                            duration: 2000
+                        })
+                    }
                 } else if (res.success && (!res.data || res.data.length === 0)) {
                     console.log('⚠️ No EPCs found in response')
                     console.log('🔍 Searched for:', toInquireTagCodes)
@@ -193,6 +351,20 @@ export const useStockStore = defineStore('stock', {
                             skuCode: null,
                             productName: null
                         }
+                    }
+                    
+                    // Convert status from backend string format to UI numeric format
+                    // Backend: GENERATED, RECEIVED, INBOUND, DELIVERED
+                    // UI: 0 (Not in stock), 1 (Inbound), 2 (Stock take), 3 (Outbound)
+                    if (tag.status) {
+                        const statusMap = {
+                            'GENERATED': 0,   // Not in stock yet
+                            'RECEIVED': 0,    // Not in stock yet
+                            'INBOUND': 1,     // In stock
+                            'DELIVERED': 3    // Outbound/Delivered
+                        }
+                        tag.statusString = tag.status  // Keep original for debugging
+                        tag.status = statusMap[tag.status] !== undefined ? statusMap[tag.status] : 0
                     }
                     
                     // Remove old record if exists

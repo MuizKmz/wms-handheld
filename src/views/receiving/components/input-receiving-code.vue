@@ -9,14 +9,14 @@
         <up-input v-model="receivingForm.code" border="none" class="input-field"
                   placeholder=" Key in receiving code">
           <template #suffix>
-            <up-button
+            <!-- <up-button
                 icon="scan"
                 shape="square"
                 size="mini"
                 text="SCAN"
                 type="primary"
                 @click="onScanCode"
-            ></up-button>
+            ></up-button> -->
           </template>
         </up-input>
       </view>

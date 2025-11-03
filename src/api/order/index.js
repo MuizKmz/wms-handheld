@@ -8,6 +8,13 @@ export default {
         })
     },
     
+    getOrderInfo(orderNo) {
+        return httpRequest({
+            method: 'GET', 
+            url: '/api/order/by-order-no/' + orderNo
+        })
+    },
+    
     getOrderProducts(orderId) {
         return httpRequest({
             method: 'GET', 

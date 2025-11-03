@@ -1,5 +1,5 @@
 <template>
-  <view v-if="stockOutForm.receivingCode" class="tags-section">
+  <view v-if="stockOutForm.orderCode" class="tags-section">
     <view class="tags-header">
       <view class="tags-title-wrapper">
         <up-icon name="tags" size="16" color="#667eea"></up-icon>
@@ -137,7 +137,7 @@ export default {
       stockOutForm: 'stockOutForm',
       ctrl: 'ctrl',
       scannedTags: 'scannedTags',
-      receivingProducts: 'receivingProducts',
+      orderProducts: 'orderProducts',
       stockOutTags: 'stockOutTags',
       tidProduct: 'tidProduct'
     }),
@@ -181,19 +181,10 @@ export default {
         } else {
           tagList.push(tag)
         }
-        // EPC mode
-        if (this.stockInForm.tagFlow === 1) {
-          // set stock in products
-          if (tag.skuCode && !tag.disabled && tag.checked) {
-            stockOutTags.push(tag)
-          }
-        } else {
-          // set stock in products
-          if (this.tidProduct && !tag.disabled && tag.checked) {
-            tag.skuCode = this.tidProduct.skuCode
-            tag.productCode = this.tidProduct.productCode
-            stockOutTags.push(tag)
-          }
+        // Stock-out always uses EPC mode
+        // Add tag to stockOutTags if it has SKU, is not disabled, and is checked
+        if (tag.skuCode && !tag.disabled && tag.checked) {
+          stockOutTags.push(tag)
         }
 
       })

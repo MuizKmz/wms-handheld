@@ -27,7 +27,7 @@
         </view>
       </scroll-view>
 
-      <stock-ctrl :stockInForm="stockInForm"/>
+      <stock-ctrl/>
     </view>
     <up-loading-page :loading="ctrl.isLoading" :loading-text="ctrl.loadingTxt" bg-color="#f5f7fa" color="#666"
                      font-size="16"
@@ -71,13 +71,13 @@ export default {
     }),
     ...mapWritableState(useInventoryStore, {deviceInventoryList: 'deviceInventoryList'}),
     ...mapWritableState(useStockStore, {
-      stockInForm: 'stockInForm',
+      stockOutForm: 'stockOutForm',
       ctrl: 'ctrl',
       scannedTags: 'scannedTags',
-      receivingProducts: 'receivingProducts'
+      orderProducts: 'orderProducts'
     }),
     epcMode() {
-      return this.stockInForm.tagFlow === 1
+      return true  // Stock-out always uses EPC mode
     },
     pageTitle() {
       return 'Stock Out'

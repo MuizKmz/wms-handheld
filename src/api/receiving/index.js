@@ -29,5 +29,12 @@ export default {
             method: 'GET', 
             url: '/api/receiving/do/' + encodeURIComponent(doNumber)
         })
+    },
+    
+    getReceivingByOrderNo(orderNo) {
+        return httpRequest({
+            method: 'GET', 
+            url: '/api/receiving/by-order-no/' + encodeURIComponent(orderNo)
+        })
     }
 }

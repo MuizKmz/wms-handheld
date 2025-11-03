@@ -421,16 +421,26 @@ export default {
       // #endif
     },
     async confirmStockIn() {
-      // Collect EPC IDs from scanned tags that have both id and skuCode
-      let epcIds = []
+      // Validate receiving is selected
+      if (!this.stockInForm.receivingId) {
+        uni.showModal({
+          title: '⚠️ No Receiving Selected',
+          content: 'Please select a receiving before stock-in.',
+          showCancel: false
+        })
+        return
+      }
+
+      // Collect EPC codes from scanned tags that have both id and skuCode
+      let epcCodes = []
       this.scannedTags.forEach(tag => {
         // Only include EPCs that were found in database (have id and skuCode)
-        if (tag.id && tag.skuCode) {
-          epcIds.push(tag.id)
+        if (tag.id && tag.skuCode && tag.epcCode) {
+          epcCodes.push(tag.epcCode)
         }
       })
 
-      if (epcIds.length === 0) {
+      if (epcCodes.length === 0) {
         uni.showModal({
           title: '⚠️ No Valid EPCs',
           content: 'Please scan EPCs that are registered in the system.\n\nScanned EPCs must have matching SKU codes.',
@@ -443,7 +453,7 @@ export default {
       const confirmed = await new Promise((resolve) => {
         uni.showModal({
           title: '📦 Confirm Stock In',
-          content: `Update ${epcIds.length} EPC(s) status to INBOUND?`,
+          content: `Stock in ${epcCodes.length} EPC(s) to receiving ${this.stockInForm.receivingCode}?`,
           success: (res) => resolve(res.confirm)
         })
       })
@@ -451,39 +461,74 @@ export default {
       if (!confirmed) return
 
       this.ctrl.isLoading = true
-      this.ctrl.loadingTxt = `Updating ${epcIds.length} EPC(s)...`
+      this.ctrl.loadingTxt = `Processing ${epcCodes.length} EPC(s)...`
 
-      // Update EPC statuses to INBOUND
-      let res
-      try {
-        res = await this.$api.bulkUpdateStatuses(epcIds, 'INBOUND')
-      } catch (err) {
-        console.error('EPC status update failed', err)
-        this.ctrl.isLoading = false
-        uni.showModal({
-          title: '❌ Stock In Failed',
-          content: `Failed to update EPC status.\n\nError: ${err.message || 'Unknown error'}`,
-          showCancel: false
-        })
-        return
+      // Process each EPC through stock-in-scan endpoint for validation
+      let successCount = 0
+      let failedEpcs = []
+
+      for (const epcCode of epcCodes) {
+        try {
+          const stockInData = {
+            epcCode: epcCode,
+            receivingId: this.stockInForm.receivingId,
+            warehouseId: this.stockInForm.warehouseId,
+            rackId: this.stockInForm.rackId,
+            sectionId: this.stockInForm.sectionId,
+            stockInBy: this.stockInForm.receivedBy || 'Operator'
+          }
+          
+          const res = await this.$api.stockInScan(stockInData)
+          
+          if (res.success) {
+            successCount++
+          } else {
+            failedEpcs.push({ epcCode, error: res.msg || 'Unknown error' })
+          }
+        } catch (err) {
+          console.error(`Stock-in failed for ${epcCode}:`, err)
+          const errorMsg = err.data?.message || err.message || 'Unknown error'
+          failedEpcs.push({ epcCode, error: errorMsg })
+        }
       }
 
       this.ctrl.isLoading = false
-      if (res.success) {
+
+      // Show results
+      if (failedEpcs.length === 0) {
+        // All successful
         uni.showModal({
           title: '✅ Stock In Success',
-          content: `Successfully stocked in ${epcIds.length} EPC(s).\n\nStatus updated to INBOUND.`,
+          content: `Successfully stocked in ${successCount} EPC(s).\n\nStatus updated to INBOUND.`,
           showCancel: false,
           success: () => {
             // Clear scanned tags and refresh
             this.clear()
           }
         })
-      } else {
+      } else if (successCount === 0) {
+        // All failed
+        const errorDetails = failedEpcs.slice(0, 3).map(f => `• ${f.epcCode}: ${f.error}`).join('\n')
+        const moreText = failedEpcs.length > 3 ? `\n...and ${failedEpcs.length - 3} more` : ''
+        
         uni.showModal({
           title: '❌ Stock In Failed',
-          content: `Failed to update EPC status.\n\nError: ${res.msg || 'Unknown error'}`,
+          content: `All ${failedEpcs.length} EPC(s) failed:\n\n${errorDetails}${moreText}`,
           showCancel: false
+        })
+      } else {
+        // Partial success
+        const errorDetails = failedEpcs.slice(0, 3).map(f => `• ${f.epcCode}: ${f.error}`).join('\n')
+        const moreText = failedEpcs.length > 3 ? `\n...and ${failedEpcs.length - 3} more` : ''
+        
+        uni.showModal({
+          title: '⚠️ Partial Success',
+          content: `✅ ${successCount} succeeded\n❌ ${failedEpcs.length} failed:\n\n${errorDetails}${moreText}`,
+          showCancel: false,
+          success: () => {
+            // Clear scanned tags and refresh
+            this.clear()
+          }
         })
       }
     },

@@ -3,10 +3,11 @@
     <up-row class="action-buttons" gutter="10" justify="center">
       <up-col span="4">
         <up-button 
-          :text="inventoryText" 
-          :type="inventoryInProgress ? 'error' : 'success'"
+          :disabled="!stockOutForm.orderCode"
+          :text="hardwareScanText" 
+          :type="isHardwareScanning ? 'error' : 'success'"
           :throttleTime="1000" 
-          icon="tags"
+          icon="scan"
           shape="circle" 
           size="small"
           @click="inventoryTrigger"></up-button>
@@ -38,6 +39,7 @@
 import {useInventoryStore} from '@/store/inventory'
 import {mapActions, mapState, mapWritableState} from 'pinia'
 import {useStockStore} from '@/store/stock'
+import hardwareScanner from '@/utils/hardware-scanner'
 
 export default {
   props: {
@@ -50,6 +52,9 @@ export default {
   },
   data() {
     return {
+      isHardwareScanning: false,
+      clipboardCheckInterval: null, // Interval for clipboard polling
+      lastClipboardContent: '', // Track last clipboard content to detect new scans
       mockEpcCodeList: ['AF01S0000001042500000001',
         'AF01S0000001042500000002',
         'AF01S0000001042500000003',
@@ -107,9 +112,21 @@ export default {
     inventoryText() {
       return this.inventoryInProgress ? 'STOP SCAN' : 'START SCAN'
     },
+    hardwareScanText() {
+      return this.isHardwareScanning ? 'Stop HW' : 'Start HW'
+    }
   },
   async mounted() {
     console.log('ctrl-stock mounted')
+    // Initialize hardware scanner
+    // #ifdef APP-PLUS
+    const initResult = hardwareScanner.init()
+    if (initResult.success) {
+      console.log('✅ Hardware scanner ready')
+    } else {
+      console.warn('⚠️ Hardware scanner init failed:', initResult.message)
+    }
+    // #endif
     // #ifdef APP-PLUS
     await this.initDevice()
     // #endif
@@ -118,6 +135,13 @@ export default {
   },
   beforeUnmount() {
     console.log('ctrl-stock unmounted')
+    // Stop hardware scanning if active
+    if (this.isHardwareScanning) {
+      hardwareScanner.stopScan()
+      this.isHardwareScanning = false
+    }
+    // Cleanup hardware scanner
+    hardwareScanner.destroy()
     uni.$off('onShow')
     // #ifdef APP-PLUS
     this.stopInventory()
@@ -135,19 +159,126 @@ export default {
       queryInventory: 'queryInventoryAction',
       reloadInventory: 'reloadInventoryAction'
     }),
+    /**
+     * Toggle hardware scanning on/off (clipboard mode for barcode scanner)
+     */
     inventoryTrigger() {
-      // this.$emit('onScanUpdate', {})
-      // #ifdef APP-PLUS
-      if (this.inventoryInProgress) {
-        this.stopInventory()
-        clearInterval(this.ctrl.queryInterval)
+      if (this.isHardwareScanning) {
+        // Stop hardware scanning
+        this.stopClipboardPolling()
+        hardwareScanner.stopScan()
+        this.isHardwareScanning = false
+        this.$msg('⏹️ Hardware Scan Stopped')
       } else {
-        this.startInventory()
-        this.ctrl.queryInterval = setInterval(() => {
-          this.queryInventory()
-        }, 1000)
+        // Validate order is scanned first
+        if (!this.stockOutForm.orderCode) {
+          this.$msg('⚠️ Please scan order number first')
+          return
+        }
+        
+        // Start hardware scanning
+        const result = hardwareScanner.startScan((barcode, barcodeType) => {
+          this.onHardwareScanResult(barcode, barcodeType)
+        })
+        
+        if (result.success) {
+          this.isHardwareScanning = true
+          this.startClipboardPolling()
+          this.$msg('🔍 Hardware Scan Active - Use Trigger', 'center', 2000)
+        } else {
+          uni.showModal({
+            title: '❌ Scanner Error',
+            content: `Failed to start hardware scanner.\n\n${result.message}`,
+            showCancel: false
+          })
+        }
       }
+    },
+    /**
+     * Start polling clipboard for scanner input (clipboard mode)
+     */
+    startClipboardPolling() {
+      // #ifdef APP-PLUS
+      console.log('📋 Starting clipboard polling...')
+      this.lastClipboardContent = ''
+      
+      // Poll clipboard every 300ms
+      this.clipboardCheckInterval = setInterval(() => {
+        uni.getClipboardData({
+          success: (res) => {
+            let clipboardText = res.data
+            
+            // Trim whitespace and newlines
+            if (clipboardText) {
+              clipboardText = clipboardText.trim()
+            }
+            
+            // Check if clipboard content changed and is not empty
+            if (clipboardText && 
+                clipboardText.length > 0 && 
+                clipboardText !== this.lastClipboardContent) {
+              
+              console.log('📋 Clipboard detected:', clipboardText)
+              this.lastClipboardContent = clipboardText
+              
+              // Process as scanned barcode
+              this.onHardwareScanResult(clipboardText, 'clipboard')
+              
+              // Clear clipboard after processing
+              setTimeout(() => {
+                uni.setClipboardData({
+                  data: '',
+                  showToast: false
+                })
+              }, 100)
+            }
+          }
+        })
+      }, 300)
       // #endif
+    },
+    /**
+     * Stop clipboard polling
+     */
+    stopClipboardPolling() {
+      if (this.clipboardCheckInterval) {
+        clearInterval(this.clipboardCheckInterval)
+        this.clipboardCheckInterval = null
+        console.log('📋 Clipboard polling stopped')
+      }
+    },
+    /**
+     * Handle hardware scan result
+     * @param {String} barcode - Scanned barcode
+     * @param {String} barcodeType - Type of barcode
+     */
+    async onHardwareScanResult(barcode, barcodeType) {
+      // Trim any whitespace or newlines
+      barcode = barcode ? barcode.trim() : ''
+      
+      if (!barcode || barcode.length === 0) {
+        console.log('⚠️ Empty barcode after trim, ignoring')
+        return
+      }
+      
+      console.log('📦 Hardware scanned:', barcode, 'Type:', barcodeType)
+      
+      // Show toast feedback
+      this.$msg(`Scanned: ${barcode}`, 'center', 1500)
+      
+      // Determine tag type based on barcode type
+      // 1: EPC/RFID, 2: QR Code, 3: Barcode
+      let tagType = 3 // Default to barcode
+      if (barcodeType && barcodeType.includes('QR')) {
+        tagType = 2
+      }
+      
+      // Add to tag store
+      this.tagStore[barcode] = tagType
+      this.removeFromInquiredTags(barcode)
+      
+      // Query inventory to get product details
+      await this.queryInventory()
     },
     /**
      * Remove tag from inquired tags
@@ -192,56 +323,105 @@ export default {
     },
 
     async confirmStockOut() {
-      if (this.stockOutTags.length <= 0) {
-        this.$msg('No tags to stock out')
+      // Validate order number exists
+      if (!this.stockOutForm.orderCode) {
+        uni.showModal({
+          title: '⚠️ No Order Selected',
+          content: 'Please scan order number first.',
+          showCancel: false
+        })
         return
       }
 
-      let tags = []
-      let epcIds = [] // Collect EPC IDs for bulk status update
-      this.stockOutTags.forEach(product => {
-        tags.push({
-          tagType: product.tagType,
-          tagCode: product.tagCode,
-          skuCode: product.skuCode,
-          productCode: product.productCode,
-        })
-        // If product has EPC id, add for bulk update
-        if (product.id && product.tagType === 1) {
-          epcIds.push(product.id)
+      // Collect EPC codes from scanned tags that have both id and skuCode
+      let epcCodes = []
+      this.scannedTags.forEach(tag => {
+        // Only include EPCs that were found in database (have id and skuCode)
+        if (tag.id && tag.skuCode && tag.epcCode) {
+          epcCodes.push(tag.epcCode)
         }
       })
 
-      let stockOutForm = {...this.stockOutForm}
-      stockOutForm.tags = tags
-
-      this.ctrl.isLoading = true
-      let res
-      try {
-        res = await this.$api.stockOut(
-            stockOutForm
-        )
-      } catch (e) {
-        console.error(e)
-        this.ctrl.isLoading = false
+      if (epcCodes.length === 0) {
+        uni.showModal({
+          title: '⚠️ No Valid EPCs',
+          content: 'Please scan EPCs that are registered in the system.\n\nScanned EPCs must:\n• Be in INBOUND status\n• Match order products\n• Have matching SKU codes',
+          showCancel: false
+        })
         return
       }
 
-      // Update EPC statuses to DELIVERED after successful stock-out
-      if (res.success && epcIds.length > 0) {
-        try {
-          await this.$api.bulkUpdateStatuses(epcIds, 'DELIVERED')
-        } catch (err) {
-          console.warn('EPC status update failed', err)
-        }
-      }
+      // Confirm before processing
+      const confirmed = await new Promise((resolve) => {
+        uni.showModal({
+          title: '📦 Confirm Stock Out',
+          content: `Stock out ${epcCodes.length} EPC(s) for order ${this.stockOutForm.orderCode}?`,
+          success: (res) => resolve(res.confirm)
+        })
+      })
 
-      this.ctrl.isLoading = false
-      if (res.success) {
-        await this.reloadInventory()
-        this.$msg('Stock out success')
-      } else {
-        this.$msg('Stock out failed: ' + res.msg)
+      if (!confirmed) return
+
+      this.ctrl.isLoading = true
+      this.ctrl.loadingTxt = `Processing ${epcCodes.length} EPC(s)...`
+
+      try {
+        // Call stock-out scan API with order validation
+        const res = await this.$api.stockOutScan({
+          epcCodes: epcCodes,
+          orderNo: this.stockOutForm.orderCode,
+          stockOutBy: 'Handheld User'
+        })
+
+        this.ctrl.isLoading = false
+
+        if (res.success && res.scanned && res.scanned.length > 0) {
+          if (res.errors && res.errors.length > 0) {
+            // Partial success
+            const errorDetails = res.errors.slice(0, 3).join('\n• ')
+            const moreText = res.errors.length > 3 ? `\n...and ${res.errors.length - 3} more` : ''
+            
+            uni.showModal({
+              title: '⚠️ Partial Success',
+              content: `✅ ${res.scanned.length} succeeded\n❌ ${res.errors.length} failed:\n\n• ${errorDetails}${moreText}`,
+              showCancel: false,
+              success: () => {
+                this.clear()
+              }
+            })
+          } else {
+            // All successful
+            uni.showModal({
+              title: '✅ Stock Out Success',
+              content: `Successfully stocked out ${res.scanned.length} EPC(s).\n\nStatus updated to DELIVERED.`,
+              showCancel: false,
+              success: () => {
+                this.clear()
+              }
+            })
+          }
+        } else {
+          // All failed
+          const errorMsg = res.errors && res.errors.length > 0 
+            ? res.errors.slice(0, 3).join('\n• ')
+            : 'Stock out failed'
+          
+          uni.showModal({
+            title: '❌ Stock Out Failed',
+            content: `Failed to stock out EPCs:\n\n• ${errorMsg}`,
+            showCancel: false
+          })
+        }
+      } catch (e) {
+        console.error('Stock out error:', e)
+        this.ctrl.isLoading = false
+        
+        const errorMsg = e.data?.message || e.message || 'Unknown error'
+        uni.showModal({
+          title: '❌ Stock Out Failed',
+          content: `Error: ${errorMsg}\n\nPlease try again or contact support.`,
+          showCancel: false
+        })
       }
     },
   }

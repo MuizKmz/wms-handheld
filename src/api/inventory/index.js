@@ -32,6 +32,13 @@ export default {
 
     bulkUpdateStatuses(ids, status) {
         return httpRequest({method: 'POST', url: '/api/epc/bulk-update-status', data: {ids, status}})
-    }
+    },
 
+    /**
+     * Stock-out scan with order validation
+     * @param {Object} data - { epcCodes: string[], orderNo: string, stockOutBy?: string }
+     */
+    stockOutScan(data) {
+        return httpRequest({method: 'POST', url: '/api/epc/stock-out-scan', data})
+    }
 }

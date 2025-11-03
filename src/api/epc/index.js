@@ -16,5 +16,12 @@ export default {
       url: '/api/epc/stock-in-scan', 
       data 
     })
+  },
+  stockOutScan(data) {
+    return httpRequest({ 
+      method: 'POST', 
+      url: '/api/epc/stock-out-scan', 
+      data 
+    })
   }
 }
