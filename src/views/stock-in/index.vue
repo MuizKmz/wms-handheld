@@ -20,7 +20,8 @@
         <receiving-code-picker ref="receivingCode"/>
         <product-list-picker v-if="!epcMode" ref="productList"/>
         <stock-purpose-picker ref="stockInPurpose"/>
-        <warehouse-rack-section-picker ref="warehouseRackSection"/>
+        <warehouse-selector ref="warehouseSelector"/>
+        <location-selector ref="locationSelector"/>
       </view>
       <!-- Products Table -->
       <product-list-card/>
@@ -45,7 +46,8 @@ import {useStockStore} from '@/store/stock'
 import FooterComponent from '@/views/components/Footer.vue'
 import HeaderComponent from '@/views/components/Header.vue'
 import {mapActions, mapState, mapWritableState} from 'pinia'
-import WarehouseRackSectionPicker from './components/picker-warehouse-rack-section.vue'
+import WarehouseSelector from './components/warehouse-selector.vue'
+import LocationSelector from './components/location-selector.vue'
 import ReceivingCodePicker from './components/picker-receiving-code.vue'
 import StockPurposePicker from './components/picker-stock-purpose.vue'
 import ProductListPicker from './components/picker-product-list.vue'
@@ -61,8 +63,8 @@ export default {
   name: 'Stock-in',
   components: {
     HeaderComponent,
-    FooterComponent,
-    WarehouseRackSectionPicker,
+    WarehouseSelector,
+    LocationSelector,
     ReceivingCodePicker,
     StockPurposePicker,
     ProductListPicker,
@@ -106,6 +108,9 @@ export default {
   },
   watch: {},
   async onLoad(options) {
+    // Clear stock-out form data to prevent cross-contamination
+    this.cancel()
+    
     setTimeout(() => {
       // #ifdef APP-PLUS
       this.initDevice()

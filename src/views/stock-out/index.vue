@@ -88,6 +88,9 @@ export default {
   },
   watch: {},
   async onLoad() {
+    // Clear stock-in form data to prevent cross-contamination
+    this.cancel()
+    
     setTimeout(() => {
       // #ifdef APP-PLUS
       this.initDevice()

@@ -81,13 +81,26 @@ export default {
         uni.hideLoading()
         
         if (res && res.data) {
-          this.orderProducts = res.data
+          // Backend returns: { product: {...}, quantity: X, allocatedEpcs: [...] }
+          // Transform to flat structure for easier access
+          this.orderProducts = res.data.map(item => ({
+            id: item.product.id,
+            productId: item.product.id,
+            name: item.product.name,
+            productCode: item.product.productCode,
+            skuCode: item.product.skuCode,
+            orderedQuantity: item.quantity,
+            status: item.status,
+            remarks: item.remarks,
+            allocatedEpcs: item.allocatedEpcs || []
+          }))
           
-          // Pre-select previously added products
+          // Pre-select previously added products and preserve expectedQuantity
           this.receivingProducts.forEach(product => {
             this.selectedProducts[product.id] = {
               ...product,
-              receivingQuantity: product.receivingQuantity || product.orderedQuantity
+              receivingQuantity: product.receivingQuantity || product.orderedQuantity,
+              expectedQuantity: product.expectedQuantity || product.orderedQuantity
             }
           })
         }
@@ -108,7 +121,8 @@ export default {
       } else {
         this.selectedProducts[product.id] = {
           ...product,
-          receivingQuantity: product.orderedQuantity // Default to ordered quantity
+          receivingQuantity: product.orderedQuantity, // Default to ordered quantity
+          expectedQuantity: product.orderedQuantity // set expectedQuantity from ordered
         }
       }
       this.$forceUpdate()
@@ -122,8 +136,14 @@ export default {
         return
       }
       
-      // Update receiving products in store
-      this.receivingProducts = products
+      // Ensure expectedQuantity exists on each product and update receiving products in store
+      const normalized = products.map(p => ({
+        ...p,
+        expectedQuantity: p.expectedQuantity || p.orderedQuantity || null,
+        receivingQuantity: p.receivingQuantity || p.orderedQuantity || 0
+      }))
+
+      this.receivingProducts = normalized
       
       this.$msg(`${products.length} product(s) added`)
       

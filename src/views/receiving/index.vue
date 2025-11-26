@@ -17,28 +17,16 @@
         </view>
         
         <!-- Form fields in exact order from image -->
-        <receiving-code-input ref="receivingCode"/>
-        <input-do-order ref="doNumber" :type="0"/>
-        <input-po-number ref="poNumber"/>
-        <warehouse-picker ref="warehouse"/>
-        <rack-picker ref="rack"/>
-        <section-picker ref="section"/>
+  <receiving-code-input ref="receivingCode"/>
+  <input-p-o-number ref="poNumber"/>
+  <input-d-o-number ref="doNumber"/>
+  <warehouse-picker ref="warehouse"/>
+  <picker-location ref="locationPicker"/>
         <supplier-list-picker ref="supplierCode"/>
         <stock-purpose-picker ref="stockInPurpose"/>
         <input-received-date ref="receivedDate"/>
         <input-received-by ref="receivedBy"/>
         <input-remark ref="remarks"/>
-      </view>
-      
-      <!-- Add Product Button -->
-      <view v-if="canAddProducts" class="add-product-section">
-        <up-button 
-          type="primary" 
-          text="Add Product" 
-          icon="plus"
-          @click="onAddProduct"
-          size="large"
-        ></up-button>
       </view>
       
       <!-- Products Table -->
@@ -59,13 +47,12 @@ import {useReceivingStore} from '@/store/receiving'
 import HeaderComponent from '@/views/components/Header.vue'
 import {mapWritableState} from 'pinia'
 import WarehousePicker from './components/picker-warehouse.vue'
-import RackPicker from './components/picker-rack.vue'
-import SectionPicker from './components/picker-section.vue'
 import ReceivingCodeInput from './components/input-receiving-code.vue'
 import SupplierListPicker from './components/picker-supplier-list.vue'
 import StockPurposePicker from './components/picker-stock-purpose.vue'
-import InputDoOrder from './components/input-do-order.vue'
-import InputPoNumber from './components/input-po-number.vue'
+import PickerLocation from './components/picker-location.vue'
+import InputPONumber from './components/input-do-order.vue'  // Renamed: now for PO scanning
+import InputDONumber from './components/input-do-number.vue'  // New: for DO manual entry
 import InputRemark from './components/input-remarks.vue'
 import InputReceivedDate from './components/input-received-date.vue'
 import InputReceivedBy from './components/input-received-by.vue'
@@ -79,13 +66,12 @@ export default {
   components: {
     HeaderComponent,
     WarehousePicker,
-    RackPicker,
-    SectionPicker,
+  PickerLocation,
     ReceivingCodeInput,
     SupplierListPicker,
     StockPurposePicker,
-    InputDoOrder,
-    InputPoNumber,
+    InputPONumber,
+    InputDONumber,
     InputRemark,
     InputReceivedDate,
     InputReceivedBy,
@@ -105,19 +91,6 @@ export default {
     }),
     pageTitle() {
       return 'New Receiving'
-    },
-    canAddProducts() {
-      // Check if all required fields are filled
-      return (
-        this.receivingForm.code &&
-        this.receivingForm.doNumber &&
-        this.receivingForm.warehouseId &&
-        this.receivingForm.rackId &&
-        this.receivingForm.sectionId &&
-        this.receivingForm.supplierId &&
-        this.receivingForm.stockPurposeName &&
-        this.receivingForm.receivedBy
-      )
     }
   },
   watch: {},
@@ -126,6 +99,8 @@ export default {
       // #ifdef APP-PLUS
       this.initDevice()
       // #endif
+      // Auto-generate receiving code on load
+      this.receivingForm.code = this.generateReceivingCode()
       this.ctrl.isLoading = false
     }, 1500)
 
@@ -142,44 +117,47 @@ export default {
     }, 500)
   },
   methods: {
-    async onAddProduct() {
-      if (!this.receivingForm.orderId) {
-        this.$msg('Please scan DO/PO first to load order')
-        return
-      }
-      
-      // Navigate to product selection page
-      uni.navigateTo({
-        url: '/views/receiving/select-products?orderId=' + this.receivingForm.orderId
-      })
-    },
-    
     async toReceivingList() {
       this.$router.push('/views/receiving/list')
     },
     async onSubmit() {
       if (await this.validateAll()) {
-        // Prepare receiving data
+        // NEW LOGIC: Prepare receiving data with REQUIRED fields
         const receivingData = {
           receivingCode: this.receivingForm.code,
-          doNumber: this.receivingForm.doNumber,
-          poNumber: this.receivingForm.poNumber || null,
-          orderId: this.receivingForm.orderId || null,
+          doNumber: this.receivingForm.doNumber,  // REQUIRED: From supplier's delivery note
+          orderId: this.receivingForm.orderId,  // REQUIRED: PO order ID
           receivingPurpose: this.receivingForm.stockPurposeCode,
           warehouseId: this.receivingForm.warehouseId,
-          rackId: this.receivingForm.rackId,
-          sectionId: this.receivingForm.sectionId,
-          supplierId: this.receivingForm.supplierId,
+          locationId: this.receivingForm.locationId || null,
+          supplierId: this.receivingForm.supplierId,  // REQUIRED: Must match PO
           receivingDate: dayjs().format('YYYY-MM-DD'),
           receivedBy: this.receivingForm.receivedBy,
           remarks: this.receivingForm.remark || null,
           source: 'handheld',
           createdBy: 1, // Get from user auth
           receivingItems: this.receivingProducts.map(product => ({
-            productId: product.id,
+            productId: product.id || product.productId,
             quantity: product.receivingQuantity || product.orderedQuantity,
+            expectedQuantity: product.expectedQuantity == null ? (product.orderedQuantity || null) : product.expectedQuantity,
             unit: 'pcs'
           }))
+        }
+
+        // Validate required fields before submitting
+        if (!receivingData.orderId) {
+          this.$msg('Please scan PO Number first')
+          return
+        }
+
+        if (!receivingData.doNumber || receivingData.doNumber.trim() === '') {
+          this.$msg('Please enter DO Number from supplier\'s delivery note')
+          return
+        }
+
+        if (!receivingData.supplierId) {
+          this.$msg('Please select a supplier')
+          return
         }
 
         try {
@@ -192,6 +170,8 @@ export default {
             
             // Reset form and navigate back
             setTimeout(() => {
+              // regenerate code for next receiving
+              this.receivingForm.code = this.generateReceivingCode()
               this.$router.push('/views/receiving/list')
             }, 1000)
           } else {
@@ -200,7 +180,10 @@ export default {
         } catch (error) {
           uni.hideLoading()
           console.error('Save receiving error:', error)
-          this.$msg('Failed to save receiving')
+          
+          // Show detailed error message
+          const errorMsg = error?.response?.data?.message || error?.message || 'Failed to save receiving'
+          this.$msg(errorMsg)
         }
       } else {
         this.$msg('Please fill all required fields')
@@ -209,16 +192,27 @@ export default {
 
     async validateAll() {
       let validateReceivingCode = await this.$refs['receivingCode'].validate()
-      let validateDoNumber = await this.$refs['doNumber'].validate()
+      let validatePONumber = await this.$refs['poNumber'].validate()  // PO is required
+      let validateDONumber = await this.$refs['doNumber'].validate()  // DO is required
       let validateSupplierCode = await this.$refs['supplierCode'].validate()
       let validateStockInPurpose = await this.$refs['stockInPurpose'].validate()
       let validateReceivingProducts = this.receivingProducts.length > 0
       
       if (!validateReceivingProducts) {
-        this.$msg('Please add at least one product')
+        this.$msg('Please add at least one product from PO order')
       }
 
-      return validateReceivingCode && validateDoNumber && validateSupplierCode && validateStockInPurpose && validateReceivingProducts
+      return validateReceivingCode && validatePONumber && validateDONumber && validateSupplierCode && validateStockInPurpose && validateReceivingProducts
+    },
+
+    generateReceivingCode() {
+      const now = new Date()
+      const year = now.getFullYear()
+      const month = String(now.getMonth() + 1).padStart(2, '0')
+      const day = String(now.getDate()).padStart(2, '0')
+      const time = String(now.getHours()).padStart(2, '0') + String(now.getMinutes()).padStart(2, '0') + String(now.getSeconds()).padStart(2, '0')
+      const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0')
+      return `RCV-${year}${month}${day}-${time}-${random}`
     }
 
   }
@@ -355,13 +349,5 @@ page {
       }
     }
   }
-}
-
-.add-product-section {
-  background-color: #fff;
-  border-radius: 16px;
-  padding: 20px;
-  margin-bottom: 16px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
 }
 </style>

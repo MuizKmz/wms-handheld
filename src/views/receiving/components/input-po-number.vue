@@ -26,6 +26,16 @@ import {mapWritableState} from 'pinia'
 import {useReceivingStore} from '@/store/receiving'
 
 export default {
+  watch: {
+    'receivingForm.poNumber': {
+      immediate: false,
+      handler(newVal) {
+        if (newVal) {
+          this.receivingForm.doNumber = ''
+        }
+      }
+    }
+  },
   computed: {
     ...mapWritableState(useReceivingStore, {
       receivingForm: 'receivingForm'
@@ -36,7 +46,19 @@ export default {
       uni.scanCode({
         autoZoom: false,
         success: (res) => {
-          this.receivingForm.poNumber = res.result
+          const po = res.result
+          // Clear DO when PO scanned
+          this.receivingForm.doNumber = ''
+          this.receivingForm.poNumber = po
+          // Try to fetch order details for the PO as well
+          if (this.$parent && this.$parent.$refs && this.$parent.$refs.doNumber) {
+            // reuse fetchOrderDetails if available on the doNumber component
+            try {
+              this.$parent.$refs.doNumber.fetchOrderDetails(po)
+            } catch {
+              // ignore if not available
+            }
+          }
         }
       })
     }

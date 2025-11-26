@@ -2,14 +2,15 @@
   <view class="form-item" @click="onPurpose">
     <text class="label">Purpose of Stock In:</text>
     <up-input v-model="stockInForm.stockPurposeName" border="none" class="input-field"
-              placeholder=" Select stock-in purpose"
+              :placeholder="isAutoPopulated ? 'Auto-populated from receiving' : 'Select stock-in purpose'"
               readonly>
       <template #suffix>
-        <up-icon :bold="true" class="input-right-icon" name="arrow-right" size="18"></up-icon>
+        <up-icon v-if="!isAutoPopulated" :bold="true" class="input-right-icon" name="arrow-right" size="18"></up-icon>
+        <up-icon v-else :bold="true" class="input-right-icon" name="checkmark" size="18" color="#52c41a"></up-icon>
       </template>
     </up-input>
   </view>
-  <u-picker v-if="ctrl.pickerShow" ref="uPicker" :cancelText="'Cancel'" :closeOnClickOverlay="true"
+  <u-picker v-if="ctrl.pickerShow && !isAutoPopulated" ref="uPicker" :cancelText="'Cancel'" :closeOnClickOverlay="true"
             :columns="ctrl.pickerOptions" :confirmText="'Confirm'"
             :defaultIndex="ctrl.pickerDefaultIndex" :immediateChange="true"
             :show="ctrl.pickerShow" :title="ctrl.pickerTitle" :visibleItemCount="7"
@@ -61,6 +62,10 @@ export default {
       scannedTags: 'scannedTags',
       receivingProducts: 'receivingProducts'
     }),
+    // Check if purpose is auto-populated from receiving
+    isAutoPopulated() {
+      return this.stockInForm.receivingPurpose && this.stockInForm.receivingPurpose.length > 0
+    }
   },
   mounted() {
     console.log('register-event-onShow')
@@ -74,6 +79,16 @@ export default {
   },
   methods: {
     onPurpose() {
+      // Prevent opening picker if auto-populated from receiving
+      if (this.isAutoPopulated) {
+        uni.showToast({
+          title: 'Purpose auto-populated from receiving',
+          icon: 'none',
+          duration: 2000
+        })
+        return
+      }
+      
       this.ctrl.pickerOptions = [...this.columns]
       this.ctrl.pickerDefaultIndex = this.defaultIndex
       this.ctrl.pickerTitle = 'Purpose of Stock In'

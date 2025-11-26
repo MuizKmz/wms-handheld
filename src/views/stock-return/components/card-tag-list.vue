@@ -46,11 +46,8 @@
         <up-col span="1.5" textAlign="center">
           <up-text align="center" class="header-text" line="3" text="SKU"></up-text>
         </up-col>
-        <up-col span="1.2" textAlign="center">
-          <up-text align="center" class="header-text" line="3" text="Status"></up-text>
-        </up-col>
-        <up-col span="1.5" textAlign="center">
-          <up-text align="center" class="header-text" line="3" text="Reason"></up-text>
+        <up-col span="2" textAlign="center">
+          <up-text align="center" class="header-text" line="3" text="Condition"></up-text>
         </up-col>
         <up-col span="1.5" textAlign="center">
           <up-text align="center" class="header-text" line="3" text="Warehouse"></up-text>
@@ -84,13 +81,20 @@
               <up-text :text="item.skuCode || '--'" align="center" class="table-text"
                        line="3"></up-text>
             </up-col>
-            <up-col span="1.2">
-              <up-text :text="getStatusDesc(item)" align="center" class="table-text"
-                       line="3"></up-text>
-            </up-col>
-            <up-col span="1.5">
-              <up-text :text="getReason(item)" align="center" class="table-text"
-                       line="3"></up-text>
+            <up-col span="2">
+              <view class="condition-select">
+                <up-button 
+                  v-for="cond in conditions" 
+                  :key="cond.value"
+                  :type="item.condition === cond.value ? 'primary' : 'info'"
+                  :plain="item.condition !== cond.value"
+                  :disabled="item.disabled"
+                  size="mini"
+                  :text="cond.label"
+                  @click="selectCondition(item, cond.value)"
+                  class="condition-btn"
+                ></up-button>
+              </view>
             </up-col>
             <up-col span="1.5">
               <up-text :text="item.warehouseCode || '--'" align="center" class="table-text"
@@ -152,7 +156,13 @@ export default {
   data() {
     return {
       tagList: [],
-      checkedValues: []
+      checkedValues: [],
+      conditions: [
+        { label: 'Good', value: 'GOOD' },
+        { label: 'Defect', value: 'DEFECTIVE' },
+        { label: 'Damage', value: 'DAMAGED' },
+        { label: 'Wrong', value: 'WRONG_ITEM' }
+      ]
       // ctrl: {
       //   showValid: false
       // }
@@ -204,10 +214,16 @@ export default {
               targetTag.checked = true
             }
           }
+          
+          // Initialize condition to GOOD if not set
+          if (!targetTag.condition) {
+            targetTag.condition = 'GOOD'
+          }
         } else {
           targetTag = {...searchTag}
           targetTag.disabled = true
           targetTag.checked = false
+          targetTag.condition = 'GOOD'
         }
 
         if (this.ctrl.showValid) {
@@ -279,6 +295,18 @@ export default {
           return false
         default:
           return true
+      }
+    },
+    selectCondition(item, condition) {
+      if (!item.disabled) {
+        item.condition = condition
+        // Update the scannedTags to persist the condition
+        const tagIndex = this.scannedTags.findIndex(tag => tag.tagCode === item.tagCode)
+        if (tagIndex !== -1) {
+          this.scannedTags[tagIndex].condition = condition
+        }
+        // Trigger update
+        this.handleTagsUpdate()
       }
     }
   }
@@ -427,6 +455,20 @@ export default {
 
       :deep(.u-checkbox-label--left) {
         justify-content: center !important;
+      }
+      
+      .condition-select {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+        justify-content: center;
+        padding: 2px 0;
+        
+        .condition-btn {
+          font-size: 9px;
+          padding: 2px 6px;
+          margin: 0;
+        }
       }
     }
 

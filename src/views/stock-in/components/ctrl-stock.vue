@@ -473,10 +473,11 @@ export default {
             epcCode: epcCode,
             receivingId: this.stockInForm.receivingId,
             warehouseId: this.stockInForm.warehouseId,
-            rackId: this.stockInForm.rackId,
-            sectionId: this.stockInForm.sectionId,
+            locationId: this.stockInForm.locationId,  // Use locationId instead of deprecated rack/section
             stockInBy: this.stockInForm.receivedBy || 'Operator'
           }
+          
+          console.log('Stock-in data:', stockInData)
           
           const res = await this.$api.stockInScan(stockInData)
           

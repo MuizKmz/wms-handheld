@@ -181,44 +181,115 @@ export default {
     },
 
     async confirmStockReturn() {
+      // Validate return type
+      if (!this.stockReturnForm.returnType) {
+        uni.showToast({
+          title: 'Please select return type',
+          icon: 'none',
+          duration: 2000
+        })
+        return
+      }
+      
+      // Validate reference order
+      if (this.stockReturnForm.returnType === 'CUSTOMER_RETURN' && !this.stockReturnForm.orderId) {
+        uni.showToast({
+          title: 'Please select a Sales Order',
+          icon: 'none',
+          duration: 2000
+        })
+        return
+      }
+      
+      if (this.stockReturnForm.returnType === 'SUPPLIER_RETURN' && !this.stockReturnForm.receivingId) {
+        uni.showToast({
+          title: 'Please select a Purchase Order',
+          icon: 'none',
+          duration: 2000
+        })
+        return
+      }
+      
+      // Validate reason
+      if (!this.stockReturnForm.reason || this.stockReturnForm.reason.trim() === '') {
+        uni.showToast({
+          title: 'Please enter return reason',
+          icon: 'none',
+          duration: 2000
+        })
+        return
+      }
+      
+      // Validate scanned tags
       if (this.stockReturnTags.length <= 0) {
         uni.showToast({
-          title: 'No tags to stock return',
-          icon: 'none'
+          title: 'No tags to return',
+          icon: 'none',
+          duration: 2000
         })
         return
       }
 
-      let tags = []
-      this.stockReturnTags.forEach(product => {
-        tags.push({
-          tagType: product.tagType,
-          tagCode: product.tagCode,
-          skuCode: product.skuCode,
-          productCode: product.productCode,
-        })
-      })
+      // Transform scanned tags to returnItems format
+      const returnItems = this.stockReturnTags.map(tag => ({
+        productId: tag.productId,
+        epcCode: tag.epcCode || tag.tagCode,
+        quantity: 1, // Each EPC represents 1 item
+        condition: tag.condition || 'GOOD',
+        conditionNotes: this.stockReturnForm.notes || null
+      }))
 
-      let stockReturnForm = {...this.stockReturnForm}
-      stockReturnForm.tags = tags
+      // Build return payload
+      const returnPayload = {
+        returnType: this.stockReturnForm.returnType,
+        orderId: this.stockReturnForm.orderId,
+        receivingId: this.stockReturnForm.receivingId,
+        customerId: this.stockReturnForm.customerId,
+        supplierId: this.stockReturnForm.supplierId,
+        requestedDate: new Date().toISOString(),
+        requestedBy: this.stockReturnForm.requestedBy || 1, // TODO: Get from auth
+        reason: this.stockReturnForm.reason,
+        notes: this.stockReturnForm.notes,
+        source: 'handheld',
+        returnItems: returnItems
+      }
+
+      console.log('Creating return:', returnPayload)
 
       this.ctrl.isLoading = true
       let res
       try {
-        res = await this.$api.stockReturn(
-            stockReturnForm
-        )
+        res = await this.$api.createReturn(returnPayload)
       } catch (e) {
-        console.error(e)
+        console.error('Return creation error:', e)
         this.ctrl.isLoading = false
+        uni.showToast({
+          title: 'Failed to create return',
+          icon: 'none',
+          duration: 2000
+        })
         return
       }
       this.ctrl.isLoading = false
+      
       if (res.success) {
         await this.reloadInventory()
-        this.$msg('Stock return success')
+        uni.showToast({
+          title: 'Return created successfully',
+          icon: 'success',
+          duration: 2000
+        })
+        
+        // Navigate back or clear form
+        setTimeout(() => {
+          uni.navigateBack()
+        }, 2000)
       } else {
-        this.$msg('Stock return failed: ' + res.msg)
+        uni.showToast({
+          title: res.msg || 'Return creation failed',
+          icon: 'none',
+          duration: 3000
+        })
       }
     },
   }

@@ -25,7 +25,8 @@
           <view class="table-header">
             <view class="table-cell header-cell product-name-col">Product Name</view>
             <view class="table-cell header-cell sku-col">SKU</view>
-            <view class="table-cell header-cell qty-col">Quantity</view>
+            <view class="table-cell header-cell expected-col">Expected</view>
+            <view class="table-cell header-cell qty-col">Receiving</view>
           </view>
           
           <!-- Table Body -->
@@ -35,6 +36,9 @@
             </view>
             <view class="table-cell sku-col">
               <text class="sku-text">{{ getTableText(item.skuCode) }}</text>
+            </view>
+            <view class="table-cell expected-col">
+              <text class="expected-text">{{ getTableText(item.expectedQuantity || item.orderedQuantity) }}</text>
             </view>
             <view class="table-cell qty-col">
               <up-number-box v-model="item.receivingQuantity" :min="1" :max="item.orderedQuantity || 9999">
@@ -194,7 +198,7 @@ export default {
     position: sticky;
     top: 0;
     z-index: 10;
-    min-width: 460px;
+    min-width: 550px;
 
     .header-cell {
       font-size: 12px;
@@ -213,7 +217,7 @@ export default {
     padding: 14px 0;
     border-bottom: 1px solid #f0f2f5;
     transition: background-color 0.2s ease;
-    min-width: 460px;
+    min-width: 550px;
 
     &:hover {
       background-color: #f8f9fa;
@@ -237,6 +241,12 @@ export default {
     &.sku-col {
       min-width: 120px;
       flex: 0 0 120px;
+      justify-content: center;
+    }
+
+    &.expected-col {
+      min-width: 90px;
+      flex: 0 0 90px;
       justify-content: center;
     }
 
@@ -300,6 +310,12 @@ export default {
     color: #666;
     font-weight: 500;
     font-family: 'Courier New', monospace;
+  }
+
+  .expected-text {
+    font-size: 13px;
+    color: #3C9CFF;
+    font-weight: 600;
   }
 
   .qty-btn {

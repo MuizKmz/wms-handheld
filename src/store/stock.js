@@ -12,13 +12,23 @@ export const useStockStore = defineStore('stock', {
             inboundNote: '',
             doNumber: '',
             receivingCode: '',
+            receivingId: null,
+            receivingPurpose: '',  // RAW_MATERIAL or FINISHED_GOODS from receiving
             skuCode: '',
             skuDesc: '',
             stockPurposeCode: '',
             stockPurposeName: '',
             warehouseCode: '',
-            rackCode: '',
-            sectionCode: '',
+            warehouseId: null,
+            warehouseName: '',
+            locationCode: '',
+            locationId: null,
+            locationName: '',
+            supplierId: null,
+            supplierCode: '',
+            supplierName: '',
+            orderId: null,
+            orderNo: '',
         },
         stockTakeForm: {
             stockTakeNote: ''
@@ -29,7 +39,15 @@ export const useStockStore = defineStore('stock', {
         },
         stockReturnForm: {
             keyword: '',
-            stockReturnNote: ''
+            returnType: null, // 'CUSTOMER_RETURN' or 'SUPPLIER_RETURN'
+            orderId: null, // For customer returns (Sales Order)
+            receivingId: null, // For supplier returns (Purchase Order receiving)
+            customerId: null,
+            supplierId: null,
+            reason: '', // Renamed from stockReturnNote
+            notes: '', // Additional notes for return
+            requestedBy: null, // User ID
+            source: 'handheld'
         },
         searchForm: {
             keyword: '',
@@ -180,17 +198,40 @@ export const useStockStore = defineStore('stock', {
                     // Check both products array AND form data to determine correct context
                     const hasReceivingData = this.receivingProducts && this.receivingProducts.length > 0
                     const hasOrderData = this.orderProducts && this.orderProducts.length > 0
-                    const hasDoNumber = this.stockInForm.doNumber && this.stockInForm.doNumber.length > 0
+                    const hasReceivingCode = this.stockInForm.receivingCode && this.stockInForm.receivingCode.length > 0
                     const hasOrderCode = this.stockOutForm.orderCode && this.stockOutForm.orderCode.length > 0
                     
-                    // Priority: If orderCode exists, we're in stock-out mode
-                    const isStockOut = hasOrderCode || (hasOrderData && !hasDoNumber)
-                    const isStockIn = !isStockOut && (hasDoNumber || hasReceivingData)
+                    // Priority: Check form codes first (most reliable)
+                    // If BOTH exist (stale data), prefer the one with matching products
+                    // If receivingCode exists with receivingProducts, we're in stock-in mode
+                    // If orderCode exists with orderProducts, we're in stock-out mode
+                    let isStockIn = false
+                    let isStockOut = false
+                    
+                    if (hasReceivingCode && hasOrderCode) {
+                        // Both codes exist (stale data) - use products array as tiebreaker
+                        if (hasReceivingData && !hasOrderData) {
+                            isStockIn = true
+                        } else if (hasOrderData && !hasReceivingData) {
+                            isStockOut = true
+                        } else if (hasReceivingData && hasOrderData) {
+                            // Both products exist - last resort: prefer receivingCode (stock-in)
+                            isStockIn = true
+                        }
+                    } else if (hasReceivingCode) {
+                        isStockIn = true
+                    } else if (hasOrderCode) {
+                        isStockOut = true
+                    } else if (hasReceivingData) {
+                        isStockIn = true
+                    } else if (hasOrderData) {
+                        isStockOut = true
+                    }
                     
                     console.log('🔍 Context Detection:', {
                         hasReceivingData,
                         hasOrderData,
-                        hasDoNumber,
+                        hasReceivingCode,
                         hasOrderCode,
                         isStockIn,
                         isStockOut
@@ -405,23 +446,51 @@ export const useStockStore = defineStore('stock', {
             this.stockInTags = []
             this.stockInForm.doNumber = ''
             this.stockInForm.receivingCode = ''
+            this.stockInForm.receivingId = null
+            this.stockInForm.receivingPurpose = ''
             this.stockInForm.skuCode = ''
             this.stockInForm.skuDesc = ''
             this.stockInForm.stockPurposeCode = ''
             this.stockInForm.stockPurposeName = ''
             this.stockInForm.warehouseCode = ''
-            this.stockInForm.rackCode = ''
-            this.stockInForm.sectionCode = ''
+            this.stockInForm.warehouseId = null
+            this.stockInForm.warehouseName = ''
+            this.stockInForm.locationCode = ''
+            this.stockInForm.locationId = null
+            this.stockInForm.locationName = ''
+            this.stockInForm.supplierId = null
+            this.stockInForm.supplierCode = ''
+            this.stockInForm.supplierName = ''
+            this.stockInForm.orderId = null
+            this.stockInForm.orderNo = ''
+            
+            // Clear stock-out form to prevent cross-contamination
+            this.stockOutForm.orderCode = ''
+            this.orderProducts = []
+            this.stockOutTags = []
         },
         cancelStockOutAction() {
             this.clearAction()
             this.orderProducts = []
             this.stockOutTags = []
             this.stockOutForm.orderCode = ''
+            
+            // Clear stock-in form to prevent cross-contamination
+            this.stockInForm.receivingCode = ''
+            this.receivingProducts = []
+            this.stockInTags = []
         },
         cancelStockReturnAction() {
             this.clearReturnAction()
             this.stockReturnForm.keyword = ''
+            this.stockReturnForm.returnType = null
+            this.stockReturnForm.orderId = null
+            this.stockReturnForm.receivingId = null
+            this.stockReturnForm.customerId = null
+            this.stockReturnForm.supplierId = null
+            this.stockReturnForm.reason = ''
+            this.stockReturnForm.notes = ''
+            this.stockReturnForm.requestedBy = null
         },
         cancelStockSearchAction() {
             this.clearAction()

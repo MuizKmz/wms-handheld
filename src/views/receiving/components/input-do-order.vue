@@ -2,12 +2,12 @@
   <up-form ref="submitForm" :model="receivingForm" :rules="rules">
     <up-form-item
         :borderBottom="false"
-        prop="doNumber"
+        prop="orderNo"
     >
       <view class="form-item">
-        <text class="label">{{ title }}:</text>
-        <up-input v-if="type === 0" v-model="receivingForm.doNumber" border="none" class="input-field"
-                  placeholder=" Key in DO No.">
+        <text class="label">PO Number:</text>
+        <up-input v-model="receivingForm.orderNo" border="none" class="input-field"
+                  placeholder="Scan or key in PO Number">
           <template #suffix>
             <up-button
                 icon="scan"
@@ -15,7 +15,7 @@
                 size="mini"
                 text="SCAN"
                 type="primary"
-                @click="onScanCode"
+                @click="onScanPO"
             ></up-button>
           </template>
         </up-input>
@@ -28,121 +28,118 @@ import {mapWritableState} from 'pinia'
 import {useReceivingStore} from '@/store/receiving'
 
 export default {
-  props: {
-    /**
-     * type: 0: DO, 1: Order
-     */
-    type: {
-      type: Number,
-      default: 0
-    }
-    // doNumber: {
-    //   type: String,
-    //   default: ''
-    // }
-  },
   watch: {
-    // 'receivingForm.doNumber': {
-    //   immediate: true,
-    //   deep: true,
-    //   handler(newVal) {
-    //     this.getReceivingList()
-    //   }
-    // }
+    'receivingForm.orderNo': {
+      immediate: false,
+      handler(newVal) {
+        if (newVal && newVal.length > 5) {
+          // Auto-fetch order when PO number is typed
+          this.fetchPOOrder(newVal)
+        }
+      }
+    }
   },
   data() {
     return {
       rules: {
-        doNumber: [
-          {required: true, message: 'Please select DO No.', trigger: ['change', 'blur']},
+        orderNo: [
+          {required: true, message: 'Please scan or enter PO Number', trigger: ['change', 'blur']},
         ]
-      },
-      code: '',
+      }
     }
   },
   computed: {
     ...mapWritableState(useReceivingStore, {
       receivingForm: 'receivingForm'
-    }),
-    title() {
-      return this.type === 0 ? 'DO No.' : 'Order No.'
-    }
-  },
-  mounted() {
-    console.log('register-event-onShow')
-    uni.$on('onShow', () => {
-      // this.getReceivingList()
     })
   },
-  beforeUnmount() {
-    console.log('unRegister-event-onShow')
-    uni.$off('onShow')
+  mounted() {
+    console.log('PO Number component mounted')
   },
   methods: {
-    onScanCode() {
+    onScanPO() {
       uni.scanCode({
         autoZoom: false,
         success: async (res) => {
-          console.log('Barcode type:', res.scanType)
-          console.log('Barcode content:', res.result)
+          console.log('PO Barcode:', res.result)
           
-          const orderNo = res.result
+          const poNumber = res.result
+          this.receivingForm.orderNo = poNumber
           
-          if (this.type === 0) {
-            // DO Number scan
-            this.receivingForm.doNumber = orderNo
-            await this.fetchOrderDetails(orderNo)
-          } else {
-            // PO Number scan
-            this.receivingForm.poNumber = orderNo
-            await this.fetchOrderDetails(orderNo)
-          }
+          // Fetch PO order details
+          await this.fetchPOOrder(poNumber)
         }
       })
     },
     
-    async fetchOrderDetails(orderNo) {
+    async fetchPOOrder(poNumber) {
       try {
-        uni.showLoading({ title: 'Loading order...' })
+        uni.showLoading({ title: 'Loading PO order...' })
         
-        // Call API to get order details
-        const res = await this.$api.getOrderByNo(orderNo)
+        // Call API to get order details by order number
+        const res = await this.$api.getOrderByNo(poNumber)
         
         uni.hideLoading()
         
         if (res && res.data) {
           const order = res.data
-          console.log('Order details:', order)
+          console.log('PO Order details:', order)
           
-          // Populate form with order details
+          // Validate that it's a PO order
+          if (order.orderType !== 'PO') {
+            uni.showModal({
+              title: 'Invalid Order Type',
+              content: `Order ${order.orderNo} is type ${order.orderType}.\n\nReceiving can only be created for PO (Purchase Order) orders.\n\nFor SO orders, use the Shipment process.`,
+              showCancel: false
+            })
+            this.receivingForm.orderNo = ''
+            this.receivingForm.orderId = null
+            return
+          }
+
+          // Validate that PO has a supplier assigned
+          if (!order.supplierId) {
+            uni.showModal({
+              title: 'Missing Supplier',
+              content: `PO order ${order.orderNo} does not have a supplier assigned.\n\nPlease update the PO order in the admin system to assign a supplier before receiving.`,
+              showCancel: false
+            })
+            this.receivingForm.orderNo = ''
+            this.receivingForm.orderId = null
+            return
+          }
+          
+          // Populate form with PO order details
           this.receivingForm.orderId = order.id
           this.receivingForm.orderNo = order.orderNo
           
-          // Auto-fill supplier if available
-          if (order.supplierId) {
-            this.receivingForm.supplierId = order.supplierId
-            this.receivingForm.supplierCode = order.supplier?.supplierCode || ''
-            this.receivingForm.supplierName = order.supplier?.supplierName || ''
-          }
+          // Auto-fill supplier (REQUIRED for PO)
+          this.receivingForm.supplierId = order.supplierId
+          this.receivingForm.supplierCode = order.supplier?.supplierCode || ''
+          this.receivingForm.supplierName = order.supplier?.supplierName || ''
           
-          this.$msg('Order loaded successfully')
+          // Don't auto-load products - user must click Add Product button
+          // Just store the order info for later product selection
+          
+          this.$msg('PO order loaded successfully. Click Add Product to select items.')
+          
+          // Emit event to notify other components
+          uni.$emit('poOrderLoaded', order)
         } else {
-          this.$msg('Order not found')
+          this.$msg('PO order not found')
         }
       } catch (error) {
         uni.hideLoading()
-        console.error('Failed to fetch order:', error)
-        this.$msg('Failed to load order')
+        console.error('Failed to fetch PO order:', error)
+        this.$msg('Failed to load PO order')
       }
     },
     
     validate() {
       return new Promise((resolve) => {
         this.$refs.submitForm.validate().then(() => {
-          // console.log(res)
           resolve(true)
         }).catch(() => {
-          // console.log(errors)
           resolve(false)
         })
       })

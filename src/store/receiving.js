@@ -1,6 +1,16 @@
 import {defineStore} from 'pinia'
 import api from '@/api'
 
+function generateReceivingCode() {
+    const now = new Date()
+    const year = now.getFullYear()
+    const month = String(now.getMonth() + 1).padStart(2, '0')
+    const day = String(now.getDate()).padStart(2, '0')
+    const time = String(now.getHours()).padStart(2, '0') + String(now.getMinutes()).padStart(2, '0') + String(now.getSeconds()).padStart(2, '0')
+    const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0')
+    return `RCV-${year}${month}${day}-${time}-${random}`
+}
+
 export const useReceivingStore = defineStore('receiving', {
     // 状态
     state: () => ({
@@ -25,6 +35,8 @@ export const useReceivingStore = defineStore('receiving', {
             rackCode: '',
             sectionId: '',
             sectionCode: '',
+            locationId: '',
+            locationCode: '',
             source: '',
             receiverName: '',
             dateReceived: '',
@@ -68,7 +80,7 @@ export const useReceivingStore = defineStore('receiving', {
         resetReceivingFormAction() {
             this.receivingForm = {
                 id: '',
-                code: '',
+                code: generateReceivingCode(),
                 doNumber: '',
                 poNumber: '',
                 orderId: '',
@@ -86,6 +98,8 @@ export const useReceivingStore = defineStore('receiving', {
                 rackCode: '',
                 sectionId: '',
                 sectionCode: '',
+                locationId: '',
+                locationCode: '',
                 source: '',
                 receiverName: '',
                 dateReceived: '',

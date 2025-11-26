@@ -16,7 +16,7 @@
   </view>
 </template>
 <script>
-import {mapWritableState, mapActions} from 'pinia'
+import {mapWritableState} from 'pinia'
 import {useStockStore} from '@/store/stock'
 import receivingApi from '@/api/receiving'
 
@@ -33,6 +33,7 @@ export default {
   data() {
     return {
       code: '',
+      searchDebounce: null,
     }
   },
   computed: {
@@ -79,10 +80,20 @@ export default {
     },
 
     onDoNumberChange() {
-      // Fetch receiving when user manually types DO number
-      if (this.stockInForm.doNumber && this.stockInForm.doNumber.length > 3) {
-        this.fetchReceivingByDO()
+      // Clear previous debounce timer
+      if (this.searchDebounce) {
+        clearTimeout(this.searchDebounce)
       }
+      
+      // Only fetch if DO number has minimum length
+      if (!this.stockInForm.doNumber || this.stockInForm.doNumber.length < 3) {
+        return
+      }
+      
+      // Debounce the search to prevent premature API calls while typing
+      this.searchDebounce = setTimeout(() => {
+        this.fetchReceivingByDO()
+      }, 500) // Wait 500ms after user stops typing
     },
 
     async fetchReceivingByDO() {
@@ -113,32 +124,60 @@ export default {
           this.stockInForm.receivingCode = data.receivingCode || ''
           this.stockInForm.receivingId = data.id
           
-          // Populate warehouse/rack/section
+          // Populate receiving purpose and map to display name
+          if (data.receivingPurpose) {
+            this.stockInForm.receivingPurpose = data.receivingPurpose
+            // Map enum to user-friendly display name
+            const purposeMap = {
+              'RAW_MATERIAL': 'Raw Material',
+              'FINISHED_GOODS': 'Finished Goods'
+            }
+            this.stockInForm.stockPurposeName = purposeMap[data.receivingPurpose] || data.receivingPurpose
+            this.stockInForm.stockPurposeCode = data.receivingPurpose
+          }
+          
+          // Populate warehouse
           this.stockInForm.warehouseCode = data.warehouse?.warehouseCode || ''
           this.stockInForm.warehouseName = data.warehouse?.name || ''
           this.stockInForm.warehouseId = data.warehouseId
           
-          this.stockInForm.rackCode = data.rack?.rackCode || ''
-          this.stockInForm.rackName = data.rack?.rackName || ''
-          this.stockInForm.rackId = data.rackId
-          
-          this.stockInForm.sectionCode = data.section?.sectionCode || ''
-          this.stockInForm.sectionName = data.section?.sectionName || ''
-          this.stockInForm.sectionId = data.sectionId
+          // Populate location (replacing rack/section)
+          if (data.location) {
+            this.stockInForm.locationId = data.locationId
+            this.stockInForm.locationCode = data.location.locationCode || ''
+            this.stockInForm.locationName = data.location.locationName || data.location.name || ''
+          } else {
+            // Clear location if not present
+            this.stockInForm.locationId = null
+            this.stockInForm.locationCode = ''
+            this.stockInForm.locationName = ''
+          }
           
           // Populate supplier
           if (data.supplier) {
+            this.stockInForm.supplierId = data.supplierId
             this.stockInForm.supplierCode = data.supplier.supplierCode
             this.stockInForm.supplierName = data.supplier.supplierName
+          }
+          
+          // Populate order
+          if (data.order) {
+            this.stockInForm.orderId = data.orderId
+            this.stockInForm.orderNo = data.order.orderNo
           }
           
           // Populate receiving items/products
           if (data.receivingItems && data.receivingItems.length > 0) {
             this.receivingProducts = data.receivingItems.map(item => ({
+              id: item.productId,
               productId: item.productId,
               productCode: item.product?.productCode,
               productName: item.product?.name,
+              name: item.product?.name,
               skuCode: item.product?.skuCode,
+              orderedQuantity: item.expectedQuantity || item.quantity || 0,
+              receivingQuantity: item.quantity,
+              expectedQuantity: item.expectedQuantity == null ? item.quantity : item.expectedQuantity,
               receivedQuantity: item.quantity,
               scannedQuantity: 0,
               unit: item.unit
@@ -153,15 +192,14 @@ export default {
           })
           
           console.log('Receiving data loaded successfully')
+          console.log('Warehouse:', this.stockInForm.warehouseCode)
+          console.log('Location:', this.stockInForm.locationCode)
+          console.log('Receiving Code:', this.stockInForm.receivingCode)
+          console.log('Stock Purpose:', this.stockInForm.inboundType)
         } else {
           uni.hideLoading()
           
           // Show detailed error
-          let errorMsg = 'Receiving not found'
-          if (response?.message) {
-            errorMsg = response.message
-          }
-          
           uni.showModal({
             title: 'Not Found',
             content: `No receiving found for DO: ${this.stockInForm.doNumber}\n\nPlease check:\n1. DO number is correct\n2. Receiving was created first\n3. Database connection is working`,

@@ -1,43 +1,38 @@
 <template>
-  <!-- Header Component -->
-  <HeaderComponent :pageTitle="pageTitle" :showBack="true" :showLogOut="true" :showNotification="true"/>
+  <view class="page-wrapper">
+    <!-- Header Component -->
+    <HeaderComponent :pageTitle="pageTitle" :showBack="true" :showLogOut="true" :showNotification="true"/>
 
-  <!-- <div class="image-wrapper">
-    <div class="image-container">
-      <image :src="topImg" alt="Stock-in"/>
-    </div>
-  </div> -->
+    <view v-if="!ctrl.isLoading" class="page-container">
+      <!-- Details Section -->
+      <scroll-view class="scroll-container" scroll-y="true">
+        <view class="content-wrapper">
+          <view class="form-section">
+            <view class="clear-btn">
+              <up-button :hairline="false" :plain="true" :throttleTime="1000" icon="trash-fill" shape="circle" size="mini"
+                         text="" type="info"
+                         @click="onCancel"></up-button>
+            </view>
+            <input-return-type/>
+            <input-reference-order/>
+            <input-search/>
+            <input-note :status="4"/>
+          </view>
+          <!-- Products Table -->
+          <!--      <product-list-card/>-->
 
-  <view v-if="!ctrl.isLoading" class="page">
-    <!-- Details Section -->
-    <scroll-view class="scroll-container" scroll-y="true">
-      <view class="form-section">
-        <view class="clear-btn">
-          <up-button :hairline="false" :plain="true" :throttleTime="1000" icon="trash-fill" shape="circle" size="mini"
-                     text="" type="info"
-                     @click="onCancel"></up-button>
+          <!-- Tags Table -->
+          <tag-list-card/>
         </view>
-        <input-search/>
-        <input-note :status="4"/>
-      </view>
-      <!-- Products Table -->
-      <!--      <product-list-card/>-->
+      </scroll-view>
 
-      <!-- Tags Table -->
-      <tag-list-card/>
-
-    </scroll-view>
-
-    <stock-ctrl/>
-
-    <!-- Sticky Footer -->
-    <view v-if="false" id="bottom" class="floating-footer">
-      <FooterComponent/>
+      <stock-ctrl/>
     </view>
+    
+    <up-loading-page :loading="ctrl.isLoading" :loading-text="ctrl.loadingTxt" bg-color="#f5e1c1" color="#666"
+                     font-size="16"
+                     icon-size="36"></up-loading-page>
   </view>
-  <up-loading-page :loading="ctrl.isLoading" :loading-text="ctrl.loadingTxt" bg-color="#f5e1c1" color="#666"
-                   font-size="16"
-                   icon-size="36"></up-loading-page>
 </template>
 
 <script>
@@ -47,6 +42,8 @@ import FooterComponent from '@/views/components/Footer.vue'
 import HeaderComponent from '@/views/components/Header.vue'
 import {mapActions, mapState, mapWritableState} from 'pinia'
 import InputSearch from './components/input-search.vue'
+import InputReturnType from './components/input-return-type.vue'
+import InputReferenceOrder from './components/input-reference-order.vue'
 import InputNote from './components/input-note.vue'
 import TagListCard from './components/card-tag-list.vue'
 import StockCtrl from './components/ctrl-stock.vue'
@@ -59,6 +56,8 @@ export default {
     HeaderComponent,
     FooterComponent,
     InputSearch,
+    InputReturnType,
+    InputReferenceOrder,
     InputNote,
     TagListCard,
     StockCtrl
@@ -124,77 +123,47 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-.image-wrapper {
-  width: 100vw;
-  /* Full width */
-  height: 80px;
-  /* Height relative to viewport */
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  background-color: #f5e1c1;
-  border-radius: 0px 0px 20px 20px;
-  //margin-top: 20px;
-  /* Background color */
-  .image-container {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    background-color: rgb(181, 180, 180);
-    /* White background */
-    border-radius: 12px;
-    /* Rounded corners */
-    padding: 10px;
-    /* Padding for spacing */
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    /* Optional shadow */
-    max-width: 120px;
-    /* Limit container width */
-    max-height: 120px;
-    /* Limit container height */
-    margin-top: 18px;
-  }
-
-  .image-container image {
-    width: 30px;
-    /* Fixed width for the image */
-    height: 30px;
-    /* Fixed height for the image */
-    max-width: 100%;
-    /* Ensure it doesn't overflow */
-    max-height: 100%;
-    /* Keep it within the container */
-    object-fit: contain;
-    /* Prevents stretching */
-  }
+.page-wrapper {
+  background-color: #f5f7fa;
+  min-height: 100vh;
+  width: 100%;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
 }
 
-.page {
-  padding: 10px;
-  display: flex;
-  flex-direction: column;
-  //height: 100vh;
-  box-sizing: border-box;
-  font-family: 'Segoe UI', Arial, sans-serif;
+.page-container {
+  background-color: #f5f7fa;
+  min-height: 100vh;
+  padding-top: 24px;
+  margin-top: 60px; // Push content below header
 }
 
 .scroll-container {
   flex: 1;
   overflow-y: auto;
-  margin-bottom: 130px;
+  margin-bottom: 150px; // Space for bottom control buttons
+  padding-bottom: 20px;
+}
+
+.content-wrapper {
+  padding: 0 16px;
 }
 
 .form-section {
   background-color: #fff;
-  border-radius: 8px;
-  padding: 12px 12px 6px;
-  margin-bottom: 12px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border-radius: 16px;
+  padding: 16px;
+  margin-bottom: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 
   .clear-btn {
     position: absolute;
     top: 6px;
-    right: 12px
+    right: 12px;
+    z-index: 10;
   }
 
   .form-item {
@@ -220,12 +189,10 @@ export default {
     }
   }
 
-
   .location-fields {
     display: flex;
     flex-wrap: wrap;
     justify-content: space-between;
-    //gap: 10px;
 
     .location-item {
       width: calc(50% - 5px);
@@ -235,15 +202,5 @@ export default {
       }
     }
   }
-}
-
-.floating-footer {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  width: 100%;
-  padding: 10px 0;
-  text-align: center;
-  z-index: 1000;
 }
 </style>

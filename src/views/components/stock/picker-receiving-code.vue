@@ -31,18 +31,18 @@ export default {
     'stockInForm.doNumber': {
       immediate: true,
       deep: true,
-      handler(newVal) {
+      handler() {
         this.getReceivingList()
       }
     },
     receivingList: {
       immediate: true,
       deep: true,
-      handler(newVal) {
-        if (newVal && newVal.length > 0) {
+      handler(val) {
+        if (val && val.length > 0) {
           // receiving columns
           let columns = []
-          let receivingList = newVal
+          let receivingList = val
           receivingList.forEach((item) => {
             columns.push({
               label: item.code,
@@ -53,16 +53,25 @@ export default {
 
           let receiving
           if (this.stockInForm.receivingCode) {
-            receiving = newVal.find(item => item.code === this.stockInForm.receivingCode)
+            receiving = val.find(item => item.code === this.stockInForm.receivingCode)
           } else {
-            receiving = newVal[0]
+            receiving = val[0]
           }
 
-          // initialize scanned quantity
+          // initialize scanned quantity and normalize products
           if (receiving.products.length > 0) {
-            receiving.products.forEach((product) => {
-              product.scannedQuantity = 0
-            })
+            receiving.products = receiving.products.map(p => ({
+              id: p.productId || p.id,
+              productId: p.productId || p.id,
+              name: p.product?.name || p.name,
+              productCode: p.product?.productCode || p.productCode,
+              skuCode: p.product?.skuCode || p.skuCode,
+              orderedQuantity: p.expectedQuantity || p.quantity || p.orderedQuantity || 0,
+              expectedQuantity: p.expectedQuantity == null ? (p.quantity || p.orderedQuantity || 0) : p.expectedQuantity,
+              receivingQuantity: p.quantity || 0,
+              scannedQuantity: 0,
+              unit: p.unit || 'pcs'
+            }))
           }
 
           // Set default form data

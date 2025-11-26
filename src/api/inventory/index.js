@@ -25,6 +25,10 @@ export default {
     stockReturn(data) {
         return httpRequest({method: 'POST', url: '/v1/handheld/inventory/stock-return', data})
     },
+    
+    createReturn(data) {
+        return httpRequest({method: 'POST', url: '/api/return', data})
+    },
 
     testSession() {
         return httpRequest({method: 'GET', url: '/v1/handheld/inventory/info'})

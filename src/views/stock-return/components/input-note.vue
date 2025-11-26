@@ -1,14 +1,16 @@
 <template>
   <view class="form-item">
-    <text class="label">{{ title }}:</text>
+    <text class="label">{{ title }}<text v-if="status === 4" class="required">*</text>:</text>
     <up-input v-if="status === 1" v-model="stockInForm.inboundNote" :placeholder="placeHolder"
               border="none" class="input-field"/>
     <up-input v-if="status === 2" v-model="stockTakeForm.stockTakeNote" :placeholder="placeHolder" border="none"
               class="input-field"/>
     <up-input v-if="status === 3" v-model="stockOutForm.outboundNote" :placeholder="placeHolder" border="none"
               class="input-field"/>
-    <up-input v-if="status === 4" v-model="stockReturnForm.stockReturnNote" :placeholder="placeHolder" border="none"
+    <up-input v-if="status === 4" v-model="stockReturnForm.reason" :placeholder="placeHolder" border="none"
               class="input-field"/>
+    <up-input v-if="status === 4" v-model="stockReturnForm.notes" placeholder="Additional notes (optional)" border="none"
+              class="input-field" style="margin-top: 8px;"/>
   </view>
 </template>
 <script>
@@ -99,6 +101,11 @@ export default {
     display: block;
     margin-bottom: 4px;
     font-size: 13px;
+    
+    .required {
+      color: #f56c6c;
+      margin-left: 2px;
+    }
   }
 
   .input-field,

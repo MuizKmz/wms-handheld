@@ -2,7 +2,7 @@
   <view class="action-section">
     <up-row class="action-buttons" gutter="10" justify="center">
       <up-col span="4">
-        <up-button :disabled="!receivingForm.supplierCode" :throttleTime="1000" icon="plus" shape="circle"
+        <up-button :disabled="!canAddProducts" :throttleTime="1000" icon="plus" shape="circle"
                    size="small" text="Add Product"
                    type="primary"
                    @click="onAddProduct"></up-button>
@@ -48,7 +48,19 @@ export default {
     ...mapWritableState(useReceivingStore, {
       receivingForm: 'receivingForm',
       ctrl: 'ctrl',
-    })
+    }),
+    canAddProducts() {
+      // Check if required fields are filled
+      return (
+        this.receivingForm.code &&
+        this.receivingForm.orderNo &&
+        this.receivingForm.doNumber &&
+        this.receivingForm.warehouseId &&
+        this.receivingForm.supplierId &&
+        this.receivingForm.stockPurposeName &&
+        this.receivingForm.receivedBy
+      )
+    }
   },
   async mounted() {
     // console.log('ctrl-stock mounted')
@@ -64,8 +76,18 @@ export default {
       resetReceivingForm: 'resetReceivingFormAction'
     }),
     onAddProduct() {
-      this.ctrl.productPickerShow = true
-      console.log(this.ctrl)
+      if (!this.receivingForm.orderId) {
+        uni.showToast({
+          title: 'Please scan PO first',
+          icon: 'none'
+        })
+        return
+      }
+      
+      // Navigate to product selection page
+      uni.navigateTo({
+        url: '/views/receiving/select-products?orderId=' + this.receivingForm.orderId
+      })
     },
     onSave() {
       this.$emit('onSave')
