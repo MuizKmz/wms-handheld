@@ -1,121 +1,85 @@
 <template>
-  <view class="tags-section">
+  <view v-if="scannedTags.length > 0" class="tags-section">
     <view class="tags-header">
-      <view class="wms-flex-row wms-justify-center wms-items-center inventory-title">
-        <up-text :bold="true" prefixIcon="tags" size="12" text="Tags to return"></up-text>
-        <view class="wms-flex-row wms-justify-center wms-items-center">
-          <view class="wms-flex-row wms-justify-center wms-items-center">
-            <up-text :bold="false" class="valid-switch" size="12" text="Valid Only"></up-text>
-            <up-switch v-model="ctrl.showValid" size="20" @change="handleTagsUpdate"></up-switch>
-          </view>
-          <view class="wms-flex-row wms-justify-between wms-items-center wms-gap-4 wms-ml-4">
-            <up-button :hairline="false" :plain="true" :throttleTime="1000" icon="trash-fill" shape="circle" size="mini"
-                       text="" type="info"
-                       @click="onClear"></up-button>
-            <up-button :hairline="false" :plain="true" :throttleTime="1000" icon="reload" shape="circle" size="mini"
-                       text="" type="info"
-                       @click="onReload"></up-button>
-          </view>
-        </view>
+      <view class="tags-title-wrapper">
+        <up-icon name="tags" size="16" color="#667eea"></up-icon>
+        <text class="tags-title-text">Scanned EPCs ({{ scannedTags.length }})</text>
+      </view>
+      <view class="tags-actions">
+        <up-button :hairline="false" :plain="true" :throttleTime="1000" icon="trash-fill" shape="circle" size="mini"
+                   text="" type="info"
+                   @click="onClear"></up-button>
+        <up-button :hairline="false" :plain="true" :throttleTime="1000" icon="reload" shape="circle" size="mini"
+                   text="" type="info"
+                   @click="onReload"></up-button>
       </view>
     </view>
-    <up-line></up-line>
-    <scroll-view class="table-wrapper" scroll-x="true">
-      <up-row align="center" class="table-header" justify="start">
-        <up-col span="1">
-          <up-checkbox-group
-              v-model="checkedValues"
-              placement="column"
-              @change="onCheckAllChange"
-          >
-            <up-checkbox
-                v-model:checked="ctrl.checkAll"
-                label=""
-                name="checkAll"
-            />
-          </up-checkbox-group>
-
-          <!--          <up-text align="center" class="header-text" line="3" text="Select"></up-text>-->
-        </up-col>
-        <up-col span="2" textAlign="center">
-          <up-text align="center" class="header-text" line="3" text="Tag Code"></up-text>
-        </up-col>
-        <up-col span="1.8" textAlign="center">
-          <up-text align="center" class="header-text" line="3" text="Product Name"></up-text>
-        </up-col>
-        <up-col span="1.5" textAlign="center">
-          <up-text align="center" class="header-text" line="3" text="SKU"></up-text>
-        </up-col>
-        <up-col span="2" textAlign="center">
-          <up-text align="center" class="header-text" line="3" text="Condition"></up-text>
-        </up-col>
-        <up-col span="1.5" textAlign="center">
-          <up-text align="center" class="header-text" line="3" text="Warehouse"></up-text>
-        </up-col>
-        <up-col span="1.5" textAlign="center">
-          <up-text align="center" class="header-text" line="3" text="Rack"></up-text>
-        </up-col>
-      </up-row>
-      <up-line class="separator-line"></up-line>
-      <scroll-view class="table-content" scroll-y="true">
-        <view v-for="(item, index) in tagList" :key="index" class="table-row">
-          <up-row :class="getRowClass(item)" align="center" justify="start">
-            <up-col span="1">
-              <up-checkbox
-                  v-model:checked="item.checked"
-                  :disabled="item.disabled"
-                  label=""
-                  usedAlone
-              >
-              </up-checkbox>
-            </up-col>
-            <up-col span="2">
-              <up-text :text="item.tagCode" align="center" class="table-text text-width-limit"
-                       line="3"></up-text>
-            </up-col>
-            <up-col span="1.8">
-              <up-text :text="item.productName || '--'" align="center" class="table-text"
-                       line="3"></up-text>
-            </up-col>
-            <up-col span="1.5">
-              <up-text :text="item.skuCode || '--'" align="center" class="table-text"
-                       line="3"></up-text>
-            </up-col>
-            <up-col span="2">
-              <view class="condition-select">
-                <up-button 
+    
+    <up-line color="#f0f2f5" margin="12px 0"></up-line>
+    
+    <view class="table-container">
+      <view class="table-wrapper">
+        <scroll-view 
+          class="table-scroll" 
+          scroll-x="true" 
+          scroll-y="true"
+          :scroll-with-animation="true"
+        >
+          <!-- Table Header -->
+          <view class="table-header">
+            <view class="table-cell header-cell epc-col">EPC Code</view>
+            <view class="table-cell header-cell product-col">Product</view>
+            <view class="table-cell header-cell sku-col">SKU</view>
+            <view class="table-cell header-cell status-col">Status</view>
+            <view class="table-cell header-cell condition-col">Condition</view>
+          </view>
+          
+          <!-- Table Body -->
+          <view v-for="(tag, index) in scannedTags" :key="index" class="table-row" :class="{ 'disabled-row': !isTagValid(tag) }">
+            <view class="table-cell epc-col">
+              <text class="epc-text">{{ tag.epcCode || tag.tagCode }}</text>
+            </view>
+            <view class="table-cell product-col">
+              <text class="product-text">{{ tag.productName || '--' }}</text>
+            </view>
+            <view class="table-cell sku-col">
+              <text class="sku-text">{{ tag.skuCode || '--' }}</text>
+            </view>
+            <view class="table-cell status-col">
+              <view class="status-badge" :class="tag.status ? `status-${tag.status.toLowerCase()}` : 'status-unknown'">
+                <text class="status-text">{{ tag.status || '--' }}</text>
+              </view>
+            </view>
+            <view class="table-cell condition-col">
+              <view class="condition-buttons">
+                <view 
                   v-for="cond in conditions" 
                   :key="cond.value"
-                  :type="item.condition === cond.value ? 'primary' : 'info'"
-                  :plain="item.condition !== cond.value"
-                  :disabled="item.disabled"
-                  size="mini"
-                  :text="cond.label"
-                  @click="selectCondition(item, cond.value)"
                   class="condition-btn"
-                ></up-button>
+                  :class="{ 'active': tag.condition === cond.value }"
+                  @click="selectCondition(tag, cond.value)"
+                >
+                  <text class="condition-text">{{ cond.label }}</text>
+                </view>
               </view>
-            </up-col>
-            <up-col span="1.5">
-              <up-text :text="item.warehouseCode || '--'" align="center" class="table-text"
-                       line="3"></up-text>
-            </up-col>
-            <up-col span="1.5">
-              <up-text :text="item.rackCode || '--'" align="center" class="table-text"
-                       line="3"></up-text>
-            </up-col>
-          </up-row>
-        </view>
-        <view v-if="tagList.length<=0" class="no-data-wrapper">No tags scanned</view>
-      </scroll-view>
-    </scroll-view>
-    <template v-if="searchReturnTags.length > 0">
-      <up-line></up-line>
-      <view class="total-tags wms-flex-row wms-justify-center wms-items-center">
-        {{ searchReturnTags.length }} tags scanned, {{ tagList.length }} tags shown
+            </view>
+          </view>
+        </scroll-view>
       </view>
-    </template>
-
+    </view>
+    
+    <up-line color="#f0f2f5" margin="12px 0"></up-line>
+    
+    <view class="summary-section">
+      <view class="summary-item">
+        <text class="summary-label">Total EPCs:</text>
+        <text class="summary-value">{{ scannedTags.length }}</text>
+      </view>
+      <view class="summary-item">
+        <text class="summary-label">Valid EPCs:</text>
+        <text class="summary-value valid">{{ validTagsCount }}</text>
+      </view>
+    </view>
   </view>
 </template>
 <script>
@@ -125,77 +89,86 @@ import {useStockStore} from '@/store/stock'
 export default {
   props: {},
   watch: {
-    searchReturnTags: {
-      deep: true,
-      immediate: true,
-      handler(newVal) {
-        if (newVal) {
-          this.handleTagsUpdate()
-        }
-      }
-    },
     scannedTags: {
       deep: true,
       immediate: true,
       handler(newVal) {
-        if (newVal) {
-          this.handleTagsUpdate()
-        }
-      }
-    },
-    tagList: {
-      deep: true,
-      immediate: true,
-      handler(newVal) {
-        if (newVal) {
-          this.ctrl.checkAll = newVal.every(tag => !tag.disabled && tag.checked)
+        if (newVal && newVal.length > 0) {
+          // Set default condition for new tags
+          newVal.forEach(tag => {
+            if (!tag.condition) {
+              tag.condition = this.stockReturnForm.defaultCondition || 'GOOD'
+            }
+          })
         }
       }
     }
   },
   data() {
     return {
-      tagList: [],
-      checkedValues: [],
       conditions: [
         { label: 'Good', value: 'GOOD' },
         { label: 'Defect', value: 'DEFECTIVE' },
         { label: 'Damage', value: 'DAMAGED' },
         { label: 'Wrong', value: 'WRONG_ITEM' }
       ]
-      // ctrl: {
-      //   showValid: false
-      // }
     }
   },
   computed: {
     ...mapWritableState(useStockStore, {
       ctrl: 'ctrl',
       scannedTags: 'scannedTags',
-      searchReturnTags: 'searchReturnTags',
-      stockReturnTags: 'stockReturnTags',
+      stockReturnForm: 'stockReturnForm',
+      selectedProduct: 'selectedProduct',
+      selectedOrder: 'selectedOrder'
     }),
+    validTagsCount() {
+      return this.scannedTags.filter(tag => this.isTagValid(tag)).length
+    }
   },
   async mounted() {
-    console.log('register-event-onShow')
-    uni.$on('onShow', () => {
-    })
-    await this.reloadInventory()
-  },
-  beforeUnmount() {
-    console.log('unRegister-event-onShow')
-    uni.$off('onShow')
+    console.log('card-tag-list mounted')
   },
   methods: {
-    ...mapActions(useStockStore, {clear: 'clearReturnAction', reloadInventory: 'reloadInventoryAction',}),
+    ...mapActions(useStockStore, {
+      clear: 'clearReturnAction', 
+      reloadInventory: 'reloadInventoryAction',
+    }),
     onClear() {
       this.clear()
-      this.searchReturnTags = []
-      this.handleTagsUpdate()
       this.$msg('Cleared all tags')
     },
     async onReload() {
       await this.reloadInventory()
+      this.$msg('Reloaded')
+    },
+    selectCondition(tag, condition) {
+      tag.condition = condition
+      this.$msg(`Condition set to: ${condition}`)
+    },
+    isTagValid(tag) {
+      // Validate based on return type
+      const isCustomerReturn = this.stockReturnForm.returnType === 'CUSTOMER_RETURN'
+      const isSupplierReturn = this.stockReturnForm.returnType === 'SUPPLIER_RETURN'
+      
+      if (isCustomerReturn && tag.status !== 'OUTBOUND') {
+        return false
+      }
+      if (isSupplierReturn && tag.status !== 'INBOUND') {
+        return false
+      }
+      
+      // Check if tag belongs to selected product
+      if (this.selectedProduct) {
+        const productSku = this.selectedProduct.product?.skuCode || this.selectedProduct.skuCode
+        if (tag.skuCode !== productSku) {
+          return false
+        }
+      }
+      
+      return true
+    },
+    onReload() {
       this.$msg('Reloaded')
     },
     handleTagsUpdate() {
@@ -259,43 +232,43 @@ export default {
       })
     },
     getStatusDesc(item) {
-      if (item.status !== 3 && item.inboundType === 3) {
-        return 'Returned'
-      } else {
-        return 'Not Return'
+      // For returns, show status based on original status
+      const statusMap = {
+        'OUTBOUND': 'Shipped (Customer)',
+        'INBOUND': 'In Warehouse',
+        'QUARANTINE': 'Already Returned',
+        'GENERATED': 'Not Received',
+        'ALLOCATED': 'Allocated'
       }
+      return statusMap[item.statusString] || item.statusString || 'Unknown'
     },
     getReason(item) {
-      if (item.status !== 3 && item.inboundType === 3) {
-        return item.inboundNote || '--'
-      } else {
-        return '--'
-      }
+      return item.inboundNote || item.notes || '--'
     },
     getRowClass(item) {
       if (item.disabled) {
         return 'text-disabled'
       }
-      switch (item.status) {
-        case 1:
-        case 2:
-          return 'text-disabled'
-        case 3:
-          return 'text-primary'
-        default:
-          return 'text-disabled'
+      // For returns: OUTBOUND (customer) or INBOUND (supplier) should be enabled
+      if (item.statusString === 'OUTBOUND' || item.statusString === 'INBOUND') {
+        return 'text-primary'
       }
+      return 'text-disabled'
     },
     getDisableState(item) {
-      switch (item.status) {
-        case 1:
-        case 2:
-          return true
-        case 3:
-          return false
-        default:
-          return true
+      // For returns: 
+      // - Customer Return: only OUTBOUND EPCs allowed
+      // - Supplier Return: only INBOUND EPCs allowed
+      const returnType = this.stockReturnForm?.returnType
+      
+      if (returnType === 'CUSTOMER_RETURN') {
+        return item.statusString !== 'OUTBOUND'
+      } else if (returnType === 'SUPPLIER_RETURN') {
+        return item.statusString !== 'INBOUND'
       }
+      
+      // If no return type set, disable all
+      return true
     },
     selectCondition(item, condition) {
       if (!item.disabled) {
@@ -314,200 +287,245 @@ export default {
 </script>
 <style lang="scss" scoped>
 .tags-section {
-  //flex: 1;
-  background-color: #fff;
-  border-radius: 8px;
-  padding: 6px 6px 0 6px;
-  margin-bottom: 12px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  min-height: 100px;
-  //width: 100vw;
-  overflow-x: auto;
-
-  .total-tags {
-    font-size: 10px;
-    color: #999;
-    padding: 10px 0;
-    //width: 100vw;
-    text-align: center;
-  }
+  background-color: #ffffff;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 
   .tags-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
 
-    :deep(.u-line) {
-      width: 130vw !important;
-    }
+    .tags-title-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 8px;
 
-    .inventory-title {
-      font-size: 12px;
-      font-weight: bold;
-      margin-bottom: 4px;
-
-      .valid-switch {
-        margin-right: 4px !important;
-      }
-
-      :deep(.u-text__value) {
-        //font-size: 12px !important;
-        //font-weight: 700 !important;
-        //text-align: center !important;
-        //width: 100px;
-      }
-    }
-  }
-
-
-  .table-wrapper {
-    overflow-x: auto;
-    white-space: nowrap;
-  }
-
-  .table-header {
-    width: 130vw;
-
-    .header-text {
-
-      font-size: 12px;
-      font-weight: bold;
-      //text-align: center;
-      margin: 4px 0px !important;
-
-      :deep(.u-text__value) {
-        font-size: 10px !important;
-        font-weight: bold !important;
-        //text-align: center !important;
-        //width: 80px;
+      .tags-title-text {
+        font-size: 15px;
+        font-weight: 600;
+        color: #333;
       }
     }
 
-    :deep(.u-checkbox-label--left) {
-      justify-content: center !important;
+    .tags-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
     }
   }
 
-  .separator-line {
-    width: 130vw !important;
-    margin: 0px !important;
-    background-color: #f0f0f0 !important;
-  }
+  .table-container {
+    .table-wrapper {
+      border: 1px solid #e9ecef;
+      border-radius: 8px;
+      overflow: hidden;
 
-  //.table-text {
-  //  font-size: 11px;
-  //  word-wrap: break-word;
-  //  overflow-wrap: break-word;
-  //  word-break: break-word;
-  //  /* Smaller font for more columns */
-  //}
-
-  .text-danger {
-    color: $uni-color-error;
-
-    :deep(.u-text__value) {
-      color: $uni-color-error !important;
-    }
-  }
-
-  .text-warning {
-    color: $uni-color-warning;
-
-    :deep(.u-text__value) {
-      color: $uni-color-warning !important;
-    }
-  }
-
-  .text-success {
-    color: $uni-color-success;
-
-    :deep(.u-text__value) {
-      color: $uni-color-success !important;
-    }
-  }
-
-  .text-primary {
-    color: $uni-color-primary;
-
-    :deep(.u-text__value) {
-      color: $uni-color-primary !important;
-    }
-  }
-
-  .text-disabled {
-    color: $uni-text-color-disable;
-
-    :deep(.u-text__value) {
-      color: $uni-text-color-disable !important;
-    }
-  }
-
-  .table-content {
-    //min-height: 100px;
-    overflow-y: auto;
-    width: 130vw;
-
-    .table-row {
-      width: 130vw;
-      border-bottom: 1px solid #f0f0f0;
-      padding: 2px 0;
-
-      &:last-child {
-        border-bottom: none;
+      .table-scroll {
+        width: 100%;
+        height: 320px;
       }
 
-      :deep(.u-checkbox-label--left) {
-        justify-content: center !important;
-      }
-      
-      .condition-select {
+      .table-header {
         display: flex;
-        flex-wrap: wrap;
+        background-color: #f8f9fa;
+        border-bottom: 2px solid #dee2e6;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+
+        .header-cell {
+          padding: 10px 8px;
+          font-size: 12px;
+          font-weight: 600;
+          color: #495057;
+          text-align: center;
+          border-right: 1px solid #dee2e6;
+
+          &:last-child {
+            border-right: none;
+          }
+        }
+      }
+
+      .table-row {
+        display: flex;
+        border-bottom: 1px solid #e9ecef;
+        transition: background-color 0.2s;
+
+        &:hover {
+          background-color: #f8f9fa;
+        }
+
+        &:last-child {
+          border-bottom: none;
+        }
+
+        &.disabled-row {
+          opacity: 0.5;
+          background-color: #f8f9fa;
+        }
+
+        .table-cell {
+          padding: 8px;
+          font-size: 12px;
+          color: #333;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border-right: 1px solid #e9ecef;
+          text-align: center;
+
+          &:last-child {
+            border-right: none;
+          }
+        }
+      }
+
+      // Column widths
+      .epc-col {
+        flex: 0 0 140px;
+        min-width: 140px;
+      }
+
+      .product-col {
+        flex: 0 0 120px;
+        min-width: 120px;
+      }
+
+      .sku-col {
+        flex: 0 0 100px;
+        min-width: 100px;
+      }
+
+      .status-col {
+        flex: 0 0 100px;
+        min-width: 100px;
+      }
+
+      .condition-col {
+        flex: 0 0 180px;
+        min-width: 180px;
+      }
+
+      .epc-text {
+        font-size: 11px;
+        color: #667eea;
+        font-weight: 500;
+        word-break: break-all;
+      }
+
+      .product-text {
+        font-size: 12px;
+        color: #333;
+      }
+
+      .sku-text {
+        font-size: 11px;
+        color: #666;
+        font-family: monospace;
+      }
+
+      .status-badge {
+        padding: 4px 8px;
+        border-radius: 12px;
+        font-size: 10px;
+        font-weight: 600;
+        text-transform: uppercase;
+
+        &.status-outbound {
+          background-color: #d1ecf1;
+          color: #0c5460;
+        }
+
+        &.status-inbound {
+          background-color: #d4edda;
+          color: #155724;
+        }
+
+        &.status-quarantine {
+          background-color: #fff3cd;
+          color: #856404;
+        }
+
+        &.status-generated {
+          background-color: #e2e3e5;
+          color: #383d41;
+        }
+
+        .status-text {
+          font-size: 10px;
+        }
+      }
+
+      .condition-buttons {
+        display: flex;
         gap: 4px;
+        flex-wrap: wrap;
         justify-content: center;
-        padding: 2px 0;
-        
+
         .condition-btn {
-          font-size: 9px;
-          padding: 2px 6px;
-          margin: 0;
+          flex: 1;
+          min-width: 36px;
+          padding: 4px 6px;
+          background-color: #f8f9fa;
+          border: 1px solid #dee2e6;
+          border-radius: 4px;
+          text-align: center;
+          cursor: pointer;
+          transition: all 0.2s;
+
+          &.active {
+            background-color: #667eea;
+            border-color: #667eea;
+
+            .condition-text {
+              color: #ffffff;
+              font-weight: 600;
+            }
+          }
+
+          .condition-text {
+            font-size: 9px;
+            color: #495057;
+            font-weight: 500;
+          }
         }
       }
     }
+  }
 
-    .table-text {
-      font-size: 10px;
-      //padding: 4px 0;
-      //text-align: center;
-      word-wrap: break-word;
-      overflow-wrap: break-word;
-      word-break: break-word;
-      //width: 50px;
+  .summary-section {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    margin-top: 12px;
 
-      :deep(.u-text__value) {
-        font-size: 10px !important;
-        //text-align: center !important;
-        //width: 80px;
+    .summary-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+
+      .summary-label {
+        font-size: 13px;
+        color: #666;
+        font-weight: 500;
       }
-    }
 
-    .text-width-limit {
-      :deep(.u-text__value) {
-        width: 70px !important;
+      .summary-value {
+        font-size: 16px;
+        color: #667eea;
+        font-weight: 700;
+
+        &.valid {
+          color: #28a745;
+        }
       }
-    }
-
-    .epc {
-      word-break: break-all;
-      text-align: left;
-      padding-left: 5px;
-    }
-
-    .no-data-wrapper {
-      text-align: center;
-      font-size: 12px;
-      color: #999;
-      padding: 10px 0;
-      width: 100vw;
     }
   }
 }
 </style>
+
   

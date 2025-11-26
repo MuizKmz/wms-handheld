@@ -8,18 +8,22 @@
       <scroll-view class="scroll-container" scroll-y="true">
         <view class="content-wrapper">
           <view class="form-section">
-            <view class="clear-btn">
-              <up-button :hairline="false" :plain="true" :throttleTime="1000" icon="trash-fill" shape="circle" size="mini"
-                         text="" type="info"
-                         @click="onCancel"></up-button>
+            <view class="section-header">
+              <text class="section-title">Return Details</text>
+              <view class="clear-btn" @click="onCancel">
+                <up-button :hairline="false" :plain="true" :throttleTime="1000" icon="trash-fill" shape="circle" size="mini"
+                           text="" type="info"></up-button>
+              </view>
             </view>
+            
             <input-return-type/>
             <input-reference-order/>
-            <input-search/>
+            <picker-product-list @product-changed="onProductChanged"/>
             <input-note :status="4"/>
           </view>
-          <!-- Products Table -->
-          <!--      <product-list-card/>-->
+
+          <!-- Selected Product Card -->
+          <card-product-detail/>
 
           <!-- Tags Table -->
           <tag-list-card/>
@@ -41,10 +45,11 @@ import {useStockStore} from '@/store/stock'
 import FooterComponent from '@/views/components/Footer.vue'
 import HeaderComponent from '@/views/components/Header.vue'
 import {mapActions, mapState, mapWritableState} from 'pinia'
-import InputSearch from './components/input-search.vue'
 import InputReturnType from './components/input-return-type.vue'
 import InputReferenceOrder from './components/input-reference-order.vue'
 import InputNote from './components/input-note.vue'
+import PickerProductList from './components/picker-product-list.vue'
+import CardProductDetail from './components/card-product-detail.vue'
 import TagListCard from './components/card-tag-list.vue'
 import StockCtrl from './components/ctrl-stock.vue'
 
@@ -55,10 +60,11 @@ export default {
   components: {
     HeaderComponent,
     FooterComponent,
-    InputSearch,
     InputReturnType,
     InputReferenceOrder,
     InputNote,
+    PickerProductList,
+    CardProductDetail,
     TagListCard,
     StockCtrl
   },
@@ -102,9 +108,6 @@ export default {
     setTimeout(() => {
       uni.$emit('onShow')
     }, 500)
-    // let pageWidth = uni.getSystemInfoSync().windowWidth
-    // let pageHeight = uni.getSystemInfoSync().windowHeight
-    // console.log(pageWidth, pageHeight)
   },
   methods: {
     ...mapActions(useInventoryStore, {
@@ -118,6 +121,11 @@ export default {
       this.cancel()
       this.$msg('Stock return reset')
     },
+    onProductChanged(product) {
+      // Clear scanned tags when product changes
+      this.scannedTags = []
+      this.$msg(`Product changed: ${product?.product?.name || product?.name}`)
+    }
   }
 }
 </script>
@@ -159,11 +167,23 @@ export default {
   margin-bottom: 16px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 
-  .clear-btn {
-    position: absolute;
-    top: 6px;
-    right: 12px;
-    z-index: 10;
+  .section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid #f0f0f0;
+
+    .section-title {
+      font-size: 16px;
+      font-weight: bold;
+      color: #333;
+    }
+
+    .clear-btn {
+      // position: relative;
+    }
   }
 
   .form-item {

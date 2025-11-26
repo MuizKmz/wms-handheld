@@ -40,6 +40,7 @@ export const useStockStore = defineStore('stock', {
         stockReturnForm: {
             keyword: '',
             returnType: null, // 'CUSTOMER_RETURN' or 'SUPPLIER_RETURN'
+            referenceNumber: '', // SO or PO number
             orderId: null, // For customer returns (Sales Order)
             receivingId: null, // For supplier returns (Purchase Order receiving)
             customerId: null,
@@ -47,8 +48,13 @@ export const useStockStore = defineStore('stock', {
             reason: '', // Renamed from stockReturnNote
             notes: '', // Additional notes for return
             requestedBy: null, // User ID
-            source: 'handheld'
+            source: 'handheld',
+            defaultCondition: 'GOOD' // Default return condition for scanned EPCs
         },
+        // Selected order details (SO or PO)
+        selectedOrder: null,
+        // Selected product from the order
+        selectedProduct: null,
         searchForm: {
             keyword: '',
         },
@@ -188,53 +194,61 @@ export const useStockStore = defineStore('stock', {
                     return
                 }
                 
+                // Determine context BEFORE validation (needed for status conversion later)
+                const hasReceivingData = this.receivingProducts && this.receivingProducts.length > 0
+                const hasOrderData = this.orderProducts && this.orderProducts.length > 0
+                const hasReceivingCode = this.stockInForm.receivingCode && this.stockInForm.receivingCode.length > 0
+                const hasOrderCode = this.stockOutForm.orderCode && this.stockOutForm.orderCode.length > 0
+                const hasReturnType = this.stockReturnForm.returnType && this.stockReturnForm.returnType.length > 0
+                
+                let isStockIn = false
+                let isStockOut = false
+                let isReturn = false
+                let isCustomerReturn = false
+                let isSupplierReturn = false
+                
+                if (hasReturnType) {
+                    isReturn = true
+                    isCustomerReturn = this.stockReturnForm.returnType === 'CUSTOMER_RETURN'
+                    isSupplierReturn = this.stockReturnForm.returnType === 'SUPPLIER_RETURN'
+                } else if (hasReceivingCode && hasOrderCode) {
+                    // Both codes exist (stale data) - use products array as tiebreaker
+                    if (hasReceivingData && !hasOrderData) {
+                        isStockIn = true
+                    } else if (hasOrderData && !hasReceivingData) {
+                        isStockOut = true
+                    } else if (hasReceivingData && hasOrderData) {
+                        // Both products exist - last resort: prefer receivingCode (stock-in)
+                        isStockIn = true
+                    }
+                } else if (hasReceivingCode) {
+                    isStockIn = true
+                } else if (hasOrderCode) {
+                    isStockOut = true
+                } else if (hasReceivingData) {
+                    isStockIn = true
+                } else if (hasOrderData) {
+                    isStockOut = true
+                }
+                
                 if (res.success && res.data && res.data.length > 0) {
                     console.log('✅ Found EPCs:', res.data)
                     
                     const invalidEpcs = []
                     const alreadyScannedEpcs = []
                     
-                    // Determine context: stock-in or stock-out
-                    // Check both products array AND form data to determine correct context
-                    const hasReceivingData = this.receivingProducts && this.receivingProducts.length > 0
-                    const hasOrderData = this.orderProducts && this.orderProducts.length > 0
-                    const hasReceivingCode = this.stockInForm.receivingCode && this.stockInForm.receivingCode.length > 0
-                    const hasOrderCode = this.stockOutForm.orderCode && this.stockOutForm.orderCode.length > 0
-                    
-                    // Priority: Check form codes first (most reliable)
-                    // If BOTH exist (stale data), prefer the one with matching products
-                    // If receivingCode exists with receivingProducts, we're in stock-in mode
-                    // If orderCode exists with orderProducts, we're in stock-out mode
-                    let isStockIn = false
-                    let isStockOut = false
-                    
-                    if (hasReceivingCode && hasOrderCode) {
-                        // Both codes exist (stale data) - use products array as tiebreaker
-                        if (hasReceivingData && !hasOrderData) {
-                            isStockIn = true
-                        } else if (hasOrderData && !hasReceivingData) {
-                            isStockOut = true
-                        } else if (hasReceivingData && hasOrderData) {
-                            // Both products exist - last resort: prefer receivingCode (stock-in)
-                            isStockIn = true
-                        }
-                    } else if (hasReceivingCode) {
-                        isStockIn = true
-                    } else if (hasOrderCode) {
-                        isStockOut = true
-                    } else if (hasReceivingData) {
-                        isStockIn = true
-                    } else if (hasOrderData) {
-                        isStockOut = true
-                    }
-                    
                     console.log('🔍 Context Detection:', {
                         hasReceivingData,
                         hasOrderData,
                         hasReceivingCode,
                         hasOrderCode,
+                        hasReturnType,
+                        returnType: this.stockReturnForm.returnType,
                         isStockIn,
-                        isStockOut
+                        isStockOut,
+                        isReturn,
+                        isCustomerReturn,
+                        isSupplierReturn
                     })
                     
                     // Validate EPCs based on context
@@ -244,15 +258,64 @@ export const useStockStore = defineStore('stock', {
                             t.epcCode === epc.epcCode || t.tagCode === epc.tagCode || t.epcCode === epc.tagCode
                         )
                         
+                        // Get status - API returns status as string (GENERATED, INBOUND, etc)
+                        const epcStatus = epc.status
+                        console.log('🔍 EPC Validation:', {
+                            epcCode: epc.epcCode,
+                            status: epc.status,
+                            statusType: typeof epc.status,
+                            isStockIn,
+                            isStockOut,
+                            isReturn
+                        })
+                        
                         if (isAlreadyScanned) {
+                            console.log('⚠️ EPC already scanned:', epc.epcCode)
                             alreadyScannedEpcs.push(epc)
-                        } else if (isStockIn && epc.status !== 'GENERATED') {
-                            // Stock-in: only GENERATED EPCs allowed
-                            invalidEpcs.push({...epc, reason: 'status', expectedStatus: 'GENERATED'})
-                        } else if (isStockOut && epc.status !== 'INBOUND') {
-                            // Stock-out: only INBOUND EPCs allowed
-                            invalidEpcs.push({...epc, reason: 'status', expectedStatus: 'INBOUND'})
+                        } 
+                        // Stock-in validation
+                        else if (isStockIn) {
+                            if (epcStatus !== 'GENERATED') {
+                                console.log('❌ Stock-in REJECT:', epc.epcCode, 'Status:', epcStatus, 'Expected: GENERATED')
+                                invalidEpcs.push({...epc, reason: 'status', expectedStatus: 'GENERATED'})
+                            } else {
+                                console.log('✅ Stock-in ACCEPT:', epc.epcCode, 'Status:', epcStatus)
+                            }
                         }
+                        // Stock-out validation
+                        else if (isStockOut) {
+                            if (epcStatus !== 'INBOUND') {
+                                console.log('❌ Stock-out REJECT:', epc.epcCode, 'Status:', epcStatus, 'Expected: INBOUND')
+                                invalidEpcs.push({...epc, reason: 'status', expectedStatus: 'INBOUND'})
+                            } else {
+                                console.log('✅ Stock-out ACCEPT:', epc.epcCode, 'Status:', epcStatus)
+                            }
+                        }
+                        // Customer return validation
+                        else if (isCustomerReturn) {
+                            if (epcStatus !== 'OUTBOUND') {
+                                console.log('❌ Customer return REJECT:', epc.epcCode, 'Status:', epcStatus, 'Expected: OUTBOUND')
+                                invalidEpcs.push({...epc, reason: 'status', expectedStatus: 'OUTBOUND'})
+                            } else {
+                                console.log('✅ Customer return ACCEPT:', epc.epcCode, 'Status:', epcStatus)
+                            }
+                        }
+                        // Supplier return validation
+                        else if (isSupplierReturn) {
+                            if (epcStatus !== 'INBOUND') {
+                                console.log('❌ Supplier return REJECT:', epc.epcCode, 'Status:', epcStatus, 'Expected: INBOUND')
+                                invalidEpcs.push({...epc, reason: 'status', expectedStatus: 'INBOUND'})
+                            } else {
+                                console.log('✅ Supplier return ACCEPT:', epc.epcCode, 'Status:', epcStatus)
+                            }
+                        }
+                    })
+                    
+                    console.log('📊 Validation Summary:', {
+                        totalEpcs: res.data.length,
+                        invalidEpcs: invalidEpcs.length,
+                        alreadyScanned: alreadyScannedEpcs.length,
+                        invalidEpcsList: invalidEpcs.map(e => e.epcCode)
                     })
                     
                     // Handle already scanned EPCs (duplicates)
@@ -282,6 +345,7 @@ export const useStockStore = defineStore('stock', {
                         if (isStockIn) {
                             const statusMessages = {
                                 'INBOUND': 'This EPC is already stocked in (INBOUND).',
+                                'OUTBOUND': 'This EPC has already been shipped (OUTBOUND).',
                                 'DELIVERED': 'This EPC has already been delivered (DELIVERED).',
                                 'RECEIVED': 'This EPC has status RECEIVED. Only GENERATED EPCs can be scanned.'
                             }
@@ -290,11 +354,30 @@ export const useStockStore = defineStore('stock', {
                         } else if (isStockOut) {
                             const statusMessages = {
                                 'GENERATED': 'This EPC has not been stocked in yet (GENERATED).',
+                                'OUTBOUND': 'This EPC has already been shipped (OUTBOUND).',
                                 'DELIVERED': 'This EPC has already been delivered (DELIVERED).',
                                 'RECEIVED': 'This EPC has status RECEIVED. Only INBOUND EPCs can be scanned.'
                             }
                             errorMsg = statusMessages[epc.status] || `This EPC has status ${epc.status}.`
                             errorMsg += '\n\nOnly EPCs with INBOUND status can be scanned for stock-out.'
+                        } else if (isCustomerReturn) {
+                            const statusMessages = {
+                                'GENERATED': 'This EPC has not been shipped yet (GENERATED).',
+                                'INBOUND': 'This EPC is in warehouse (INBOUND). Customer returns must be OUTBOUND.',
+                                'QUARANTINE': 'This EPC is already in quarantine (QUARANTINE).',
+                                'ALLOCATED': 'This EPC is allocated but not shipped (ALLOCATED).'
+                            }
+                            errorMsg = statusMessages[epc.status] || `This EPC has status ${epc.status}.`
+                            errorMsg += '\n\nOnly EPCs with OUTBOUND status (shipped to customer) can be returned.'
+                        } else if (isSupplierReturn) {
+                            const statusMessages = {
+                                'GENERATED': 'This EPC has not been received yet (GENERATED).',
+                                'OUTBOUND': 'This EPC has been shipped out (OUTBOUND). Supplier returns must be INBOUND.',
+                                'QUARANTINE': 'This EPC is already in quarantine (QUARANTINE).',
+                                'ALLOCATED': 'This EPC is allocated for shipping (ALLOCATED).'
+                            }
+                            errorMsg = statusMessages[epc.status] || `This EPC has status ${epc.status}.`
+                            errorMsg += '\n\nOnly EPCs with INBOUND status (in warehouse) can be returned to supplier.'
                         }
                         
                         uni.showModal({
@@ -394,10 +477,11 @@ export const useStockStore = defineStore('stock', {
                         }
                     }
                     
-                    // Convert status from backend string format to UI numeric format
-                    // Backend: GENERATED, RECEIVED, INBOUND, DELIVERED
-                    // UI: 0 (Not in stock), 1 (Inbound), 2 (Stock take), 3 (Outbound)
-                    if (tag.status) {
+                    // Convert status ONLY for stock-in/stock-out (not for returns)
+                    // Returns need string status for validation and display
+                    if (!isReturn && tag.status) {
+                        // Backend: GENERATED, RECEIVED, INBOUND, DELIVERED
+                        // UI: 0 (Not in stock), 1 (Inbound), 2 (Stock take), 3 (Outbound)
                         const statusMap = {
                             'GENERATED': 0,   // Not in stock yet
                             'RECEIVED': 0,    // Not in stock yet
@@ -434,6 +518,19 @@ export const useStockStore = defineStore('stock', {
             this.scannedTags = []
             this.inquiredTagCodes = []
             this.tagStore = {}
+            // Clear return form to prevent stale data
+            this.stockReturnForm = {
+                returnType: '',
+                referenceNumber: '',
+                orderId: null,
+                receivingId: null,
+                customerId: null,
+                supplierId: null,
+                reason: '',
+                defaultCondition: 'GOOD'
+            }
+            this.selectedOrder = null
+            this.selectedProduct = null
         },
         clearReturnAction() {
             this.clearAction()

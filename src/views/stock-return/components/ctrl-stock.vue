@@ -1,23 +1,48 @@
 <template>
   <view class="action-section">
     <up-row class="action-buttons" gutter="10" justify="center">
-      <up-col span="4">
-        <up-button :disabled="searchReturnTags.length <= 0" :text="inventoryText" :throttleTime="1000" icon="tags"
-                   shape="circle" size="small"
-                   type="success"
-                   @click="inventoryTrigger"></up-button>
+      <up-col span="3">
+        <up-button 
+          :disabled="!selectedOrder" 
+          :type="isHardwareScanning ? 'error' : 'success'"
+          :throttleTime="1000" 
+          icon="scan" 
+          shape="circle"
+          size="small"
+          :text="hardwareScanText"
+          @click="toggleHardwareScan"></up-button>
       </up-col>
-      <up-col span="4">
-        <up-button :disabled="searchReturnTags.length <= 0" :throttleTime="1000" icon="scan" shape="circle" size="small"
-                   text="SCAN QR"
-                   type="warning"
-                   @click="onScanCode"></up-button>
+      <up-col span="3">
+        <up-button 
+          :disabled="!selectedOrder || isHardwareScanning" 
+          :throttleTime="1000" 
+          icon="camera" 
+          shape="circle"
+          size="small"
+          text="QR Scan"
+          type="warning"
+          @click="onScanCode"></up-button>
       </up-col>
-      <up-col span="4">
-        <up-button :disabled="searchReturnTags.length <= 0" :throttleTime="1000" icon="home" shape="circle" size="small"
-                   text="RETURN"
-                   type="primary"
-                   @click="confirmStockReturn"></up-button>
+      <up-col span="3">
+        <up-button 
+          :disabled="!canSubmit" 
+          :throttleTime="1000" 
+          icon="checkmark-circle" 
+          shape="circle"
+          size="small"
+          text="Return"
+          type="primary"
+          @click="confirmStockReturn"></up-button>
+      </up-col>
+      <up-col span="3">
+        <up-button 
+          :throttleTime="1000" 
+          icon="trash" 
+          shape="circle"
+          size="small"
+          text="Clear"
+          type="info"
+          @click="onClear"></up-button>
       </up-col>
     </up-row>
   </view>
@@ -26,52 +51,27 @@
 import {useInventoryStore} from '@/store/inventory'
 import {mapActions, mapState, mapWritableState} from 'pinia'
 import {useStockStore} from '@/store/stock'
+import hardwareScanner from '@/utils/hardware-scanner'
 
 export default {
-  props: {
-    // submitForm: {
-    //   type: Object,
-    //   default: () => {
-    //     return {}
-    //   }
-    // }
-  },
+  props: {},
   data() {
     return {
-      mockEpcCodeList: ['AF01S0000001042500000001',
-        'AF01S0000001042500000002',
-        'AF01S0000001042500000003',
-        'AF01S0000001042500000004',
-        'AF01S0000001042500000005',
-        'AF01S0000001042500000006',
-        'AF01S0000001042500000007',
-        'AF01S0000001042500000008',
-        'AF01S0000001042500000009',
-        'AF01S0000001042500000010',
-        'AF01S0000002042500000001',
-        'AF01S0000002042500000002',
-        'AF01S0000002042500000003',
-        'AF01S0000002042500000004',
-        'AF01S0000002042500000005',
-        'AF01S0000002042500000006']
-      // key:tagCode, value: tagType
-      // scannedMap: new Map(),
+      isHardwareScanning: false,
+      scannerBuffer: '',
+      scannerInputFocus: false,
+      scannerTimeout: null,
+      clipboardCheckInterval: null,
+      lastClipboardContent: ''
     }
   },
   watch: {
-    // tagMap: {
-    //   handler(newVal) {
-    //   },
-    //   deep: true
-    // },
     deviceInventoryList: {
       handler(newVal) {
-        // this.scannedMap.set(tag.tagCode, tag.tagType)
         if (newVal) {
           newVal.forEach(tag => {
             this.tagStore[tag.epc] = 1
             this.removeFromInquiredTags(tag.epc)
-            // this.scannedMap.set(tag.epc, 1)
           })
         }
       },
@@ -90,23 +90,45 @@ export default {
       scannedTags: 'scannedTags',
       inquiredTagCodes: 'inquiredTagCodes',
       tagStore: 'tagStore',
-      searchReturnTags: 'searchReturnTags',
-      stockReturnTags: 'stockReturnTags'
+      selectedProduct: 'selectedProduct',
+      selectedOrder: 'selectedOrder'
     }),
-    inventoryText() {
-      return this.inventoryInProgress ? 'STOP SCAN' : 'START SCAN'
+    hardwareScanText() {
+      return this.isHardwareScanning ? 'Stop HW' : 'Start HW'
     },
+    canSubmit() {
+      // Can submit if:
+      // 1. Return type selected
+      // 2. Reference order selected
+      // 3. At least 1 EPC scanned (partial return allowed)
+      // 4. Reason provided
+      // Note: selectedProduct is optional - can scan EPCs from any product in the order
+      return this.stockReturnForm.returnType && 
+             this.stockReturnForm.referenceNumber && 
+             this.scannedTags.length > 0 &&
+             this.stockReturnForm.reason
+    }
   },
   async mounted() {
-    console.log('ctrl-stock mounted')
+    // Initialize hardware scanner
     // #ifdef APP-PLUS
-    await this.initDevice()
+    const initResult = hardwareScanner.init()
+    if (initResult.success) {
+      console.log('✅ Hardware scanner ready')
+    } else {
+      console.warn('⚠️ Hardware scanner init failed:', initResult.message)
+    }
     // #endif
-    // uni.$on('onShow', () => {
-    // })
   },
   beforeUnmount() {
-    console.log('ctrl-stock unmounted')
+    // Stop hardware scanning if active
+    if (this.isHardwareScanning) {
+      this.stopClipboardPolling()
+      hardwareScanner.stopScan()
+      this.isHardwareScanning = false
+    }
+    // Cleanup hardware scanner
+    hardwareScanner.destroy()
     uni.$off('onShow')
     // #ifdef APP-PLUS
     this.stopInventory()
@@ -124,24 +146,109 @@ export default {
       queryInventory: 'queryInventoryAction',
       reloadInventory: 'reloadInventoryAction'
     }),
-    inventoryTrigger() {
-      // this.$emit('onScanUpdate', {})
+    toggleHardwareScan() {
       // #ifdef APP-PLUS
-      if (this.inventoryInProgress) {
-        this.stopInventory()
-        clearInterval(this.ctrl.queryInterval)
+      if (this.isHardwareScanning) {
+        // Stop hardware scanning
+        this.stopClipboardPolling()
+        hardwareScanner.stopScan()
+        this.isHardwareScanning = false
+        this.$msg('⏹️ Hardware Scan Stopped')
       } else {
-        this.startInventory()
-        this.ctrl.queryInterval = setInterval(() => {
-          this.queryInventory()
-        }, 1000)
+        // Start hardware scanning
+        const result = hardwareScanner.startScan((barcode, barcodeType) => {
+          this.onHardwareScanResult(barcode, barcodeType)
+        })
+        
+        if (result.success) {
+          this.isHardwareScanning = true
+          this.startClipboardPolling()
+          this.$msg('🔍 Hardware Scan Active - Use Trigger', 'center', 2000)
+        } else {
+          uni.showModal({
+            title: '❌ Scanner Error',
+            content: `Failed to start hardware scanner.\n\n${result.message}`,
+            showCancel: false
+          })
+        }
       }
       // #endif
+      // #ifdef H5
+      this.$msg('Hardware scanner not available in browser')
+      // #endif
     },
-    /**
-     * Remove tag from inquired tags
-     * @param tagCode
-     */
+    startClipboardPolling() {
+      // #ifdef APP-PLUS
+      this.lastClipboardContent = ''
+      
+      // Poll clipboard every 300ms
+      this.clipboardCheckInterval = setInterval(() => {
+        uni.getClipboardData({
+          success: (res) => {
+            let clipboardText = res.data
+            
+            // Trim whitespace and newlines
+            if (clipboardText) {
+              clipboardText = clipboardText.trim()
+            }
+            
+            // Check if clipboard content changed and is not empty
+            if (clipboardText && 
+                clipboardText.length > 0 && 
+                clipboardText !== this.lastClipboardContent) {
+              
+              this.lastClipboardContent = clipboardText
+              
+              // Process as scanned barcode
+              this.onHardwareScanResult(clipboardText, 'clipboard')
+              
+              // Clear clipboard after processing
+              setTimeout(() => {
+                uni.setClipboardData({
+                  data: '',
+                  showToast: false
+                })
+              }, 100)
+            }
+          }
+        })
+      }, 300)
+      // #endif
+    },
+    stopClipboardPolling() {
+      if (this.clipboardCheckInterval) {
+        clearInterval(this.clipboardCheckInterval)
+        this.clipboardCheckInterval = null
+      }
+    },
+    async onHardwareScanResult(barcode, barcodeType) {
+      // Trim any whitespace or newlines
+      barcode = barcode ? barcode.trim() : ''
+      
+      if (!barcode || barcode.length === 0) {
+        console.log('⚠️ Empty barcode after trim, ignoring')
+        return
+      }
+      
+      console.log('📦 Hardware scanned:', barcode, 'Type:', barcodeType)
+      
+      // Show toast feedback
+      this.$msg(`Scanned: ${barcode}`, 'center', 1500)
+      
+      // Determine tag type based on barcode type
+      // 1: EPC/RFID, 2: QR Code, 3: Barcode
+      let tagType = 3 // Default to barcode
+      if (barcodeType && barcodeType.includes('QR')) {
+        tagType = 2
+      }
+      
+      // Add to tag store
+      this.tagStore[barcode] = tagType
+      this.removeFromInquiredTags(barcode)
+      
+      // Query inventory to get product details
+      await this.queryInventory()
+    },
     removeFromInquiredTags(tagCode) {
       let inquiredTagCodeSet = new Set([...this.inquiredTagCodes])
       inquiredTagCodeSet.delete(tagCode)
@@ -152,86 +259,62 @@ export default {
       uni.scanCode({
         autoZoom: false,
         success: async (res) => {
-          // console.log('条码类型：' + res.scanType)
-          // console.log('条码内容：' + res.result)
-          // 1:RFID 2:QRCode 3:BarCode 4:Excel
           let tagType
           if (res.scanType === 'QR_CODE') {
             tagType = 2
           } else {
             tagType = 3
           }
-          // this.scannedMap.set(res.result, tagType)
+          
+          // Show feedback
+          this.$msg(`Scanned: ${res.result}`, 'center', 1500)
+          
+          // Add to tagStore
           this.tagStore[res.result] = tagType
           this.removeFromInquiredTags(res.result)
+          
+          // Query inventory
           await this.queryInventory()
+          
+          // Continue scanning
           setTimeout(() => {
             this.onScanCode()
           }, 500)
         }
       })
       // #endif
-      // #ifdef H5
-      this.mockEpcCodeList.forEach(epcCode => {
-        this.tagStore[epcCode] = 2
-        this.removeFromInquiredTags(epcCode)
-      })
-      this.queryInventory()
-      // #endif
     },
-
+    onClear() {
+      this.clear()
+      this.$msg('Form cleared')
+    },
     async confirmStockReturn() {
       // Validate return type
       if (!this.stockReturnForm.returnType) {
-        uni.showToast({
-          title: 'Please select return type',
-          icon: 'none',
-          duration: 2000
-        })
+        this.$msg('Please select return type')
         return
       }
       
       // Validate reference order
-      if (this.stockReturnForm.returnType === 'CUSTOMER_RETURN' && !this.stockReturnForm.orderId) {
-        uni.showToast({
-          title: 'Please select a Sales Order',
-          icon: 'none',
-          duration: 2000
-        })
+      if (!this.stockReturnForm.referenceNumber) {
+        this.$msg('Please select SO/PO reference')
         return
       }
       
-      if (this.stockReturnForm.returnType === 'SUPPLIER_RETURN' && !this.stockReturnForm.receivingId) {
-        uni.showToast({
-          title: 'Please select a Purchase Order',
-          icon: 'none',
-          duration: 2000
-        })
+      // Validate scanned tags (at least 1 EPC required for partial return)
+      if (this.scannedTags.length <= 0) {
+        this.$msg('No EPCs scanned')
         return
       }
       
       // Validate reason
       if (!this.stockReturnForm.reason || this.stockReturnForm.reason.trim() === '') {
-        uni.showToast({
-          title: 'Please enter return reason',
-          icon: 'none',
-          duration: 2000
-        })
-        return
-      }
-      
-      // Validate scanned tags
-      if (this.stockReturnTags.length <= 0) {
-        uni.showToast({
-          title: 'No tags to return',
-          icon: 'none',
-          duration: 2000
-        })
+        this.$msg('Please enter return reason')
         return
       }
 
       // Transform scanned tags to returnItems format
-      const returnItems = this.stockReturnTags.map(tag => ({
+      const returnItems = this.scannedTags.map(tag => ({
         productId: tag.productId,
         epcCode: tag.epcCode || tag.tagCode,
         quantity: 1, // Each EPC represents 1 item
@@ -247,7 +330,7 @@ export default {
         customerId: this.stockReturnForm.customerId,
         supplierId: this.stockReturnForm.supplierId,
         requestedDate: new Date().toISOString(),
-        requestedBy: this.stockReturnForm.requestedBy || 1, // TODO: Get from auth
+        requestedBy: this.stockReturnForm.requestedBy || 1,
         reason: this.stockReturnForm.reason,
         notes: this.stockReturnForm.notes,
         source: 'handheld',
@@ -257,39 +340,29 @@ export default {
       console.log('Creating return:', returnPayload)
 
       this.ctrl.isLoading = true
+      this.ctrl.loadingTxt = 'Creating return...'
+      
       let res
       try {
         res = await this.$api.createReturn(returnPayload)
       } catch (e) {
         console.error('Return creation error:', e)
         this.ctrl.isLoading = false
-        uni.showToast({
-          title: 'Failed to create return',
-          icon: 'none',
-          duration: 2000
-        })
+        this.$msg('Failed to create return')
         return
       }
       this.ctrl.isLoading = false
       
       if (res.success) {
         await this.reloadInventory()
-        uni.showToast({
-          title: 'Return created successfully',
-          icon: 'success',
-          duration: 2000
-        })
+        this.$msg('Return created successfully!')
         
         // Navigate back or clear form
         setTimeout(() => {
           uni.navigateBack()
         }, 2000)
       } else {
-        uni.showToast({
-          title: res.msg || 'Return creation failed',
-          icon: 'none',
-          duration: 3000
-        })
+        this.$msg(res.msg || 'Return creation failed')
       }
     },
   }

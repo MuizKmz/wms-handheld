@@ -1,16 +1,17 @@
 <template>
   <view class="form-item">
-    <text class="label">{{ title }}<text v-if="status === 4" class="required">*</text>:</text>
-    <up-input v-if="status === 1" v-model="stockInForm.inboundNote" :placeholder="placeHolder"
-              border="none" class="input-field"/>
-    <up-input v-if="status === 2" v-model="stockTakeForm.stockTakeNote" :placeholder="placeHolder" border="none"
-              class="input-field"/>
-    <up-input v-if="status === 3" v-model="stockOutForm.outboundNote" :placeholder="placeHolder" border="none"
-              class="input-field"/>
-    <up-input v-if="status === 4" v-model="stockReturnForm.reason" :placeholder="placeHolder" border="none"
-              class="input-field"/>
-    <up-input v-if="status === 4" v-model="stockReturnForm.notes" placeholder="Additional notes (optional)" border="none"
-              class="input-field" style="margin-top: 8px;"/>
+    <text class="label">{{ title }}<text v-if="status === 4" class="required">*</text></text>
+    <up-textarea v-if="status === 1" v-model="stockInForm.inboundNote" :placeholder="placeHolder"
+              border="none" class="input-field" count maxlength="200"/>
+    <up-textarea v-if="status === 2" v-model="stockTakeForm.stockTakeNote" :placeholder="placeHolder" border="none"
+              class="input-field" count maxlength="200"/>
+    <up-textarea v-if="status === 3" v-model="stockOutForm.outboundNote" :placeholder="placeHolder" border="none"
+              class="input-field" count maxlength="200"/>
+    <up-textarea v-if="status === 4" v-model="stockReturnForm.reason" :placeholder="placeHolder" border="none"
+              class="input-field" count maxlength="200"/>
+    <text v-if="status === 4" class="label" style="margin-top: 12px;">Additional Notes</text>
+    <up-textarea v-if="status === 4" v-model="stockReturnForm.notes" placeholder="Additional notes (optional)" border="none"
+              class="input-field" count maxlength="200"/>
   </view>
 </template>
 <script>
@@ -94,13 +95,15 @@ export default {
 </script>
 <style lang="scss" scoped>
 .form-item {
-  margin-bottom: 4px;
+  margin-bottom: 16px;
+  width: 100%;
 
   .label {
     font-weight: 600;
     display: block;
-    margin-bottom: 4px;
-    font-size: 13px;
+    margin-bottom: 8px;
+    font-size: 14px;
+    color: #333;
     
     .required {
       color: #f56c6c;
@@ -108,26 +111,26 @@ export default {
     }
   }
 
-  .input-field,
-  .select-field {
-    background-color: #f5f5f5;
-    border-radius: 4px;
-    padding: 8px 10px;
-    font-size: 13px;
+  .input-field {
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    padding: 12px 14px;
+    font-size: 14px;
+    border: 1px solid #e8eaed;
+    transition: all 0.2s ease;
 
-    :deep(.input-right-icon) {
-      .u-icon__icon {
-        font-size: 12px !important;
-      }
-
-      margin-right: 4px !important;
+    &:focus-within {
+      background-color: #fff;
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
     }
   }
 }
 
-:deep(.u-input__content__field-wrapper__field) {
-  font-size: 12px !important;
-  margin-left: 6px !important;
+:deep(.u-textarea__count) {
+  background-color: transparent;
+  font-size: 12px;
+  color: #909399;
 }
 </style>
   

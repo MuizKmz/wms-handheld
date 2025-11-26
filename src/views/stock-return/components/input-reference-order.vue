@@ -1,7 +1,7 @@
 <template>
   <view class="form-item">
-    <text class="label">{{ labelText }}<text class="required">*</text>:</text>
-    <view class="input-with-qr">
+    <text class="label">{{ labelText }}<text class="required">*</text></text>
+    <view class="search-container">
       <up-input 
         v-model="searchKeyword" 
         :placeholder="placeholderText"
@@ -11,25 +11,27 @@
         @keyup.enter="searchOrder"
       >
         <template #suffix>
-          <up-button 
-            :loading="isSearching"
-            icon="search"
-            shape="square"
-            size="mini"
-            text="Search"
-            type="primary"
-            @click.stop="searchOrder"
-          ></up-button>
+          <view class="input-actions">
+            <view @click="scanQRCode" class="scan-icon-wrapper">
+              <up-icon 
+                name="scan" 
+                size="20" 
+                color="#19be6b"
+                class="scan-icon"
+              ></up-icon>
+            </view>
+            <up-button 
+              :loading="isSearching"
+              icon="search"
+              shape="square"
+              size="mini"
+              text="Search"
+              type="primary"
+              @click="searchOrder"
+            ></up-button>
+          </view>
         </template>
       </up-input>
-      <up-button 
-        icon="scan"
-        shape="circle"
-        size="small"
-        text=""
-        type="success"
-        @click="scanQRCode"
-      ></up-button>
     </view>
     
     <!-- Search Results -->
@@ -92,14 +94,14 @@ export default {
     return {
       searchKeyword: '',
       searchResults: [],
-      selectedOrder: null,
       isSearching: false,
       searchTimeout: null
     }
   },
   computed: {
     ...mapWritableState(useStockStore, {
-      stockReturnForm: 'stockReturnForm'
+      stockReturnForm: 'stockReturnForm',
+      selectedOrder: 'selectedOrder'  // Use store's selectedOrder
     }),
     returnType() {
       return this.stockReturnForm.returnType
@@ -141,14 +143,6 @@ export default {
   },
   methods: {
     async searchOrder() {
-      if (!this.searchKeyword) {
-        uni.showToast({
-          title: 'Please enter order number',
-          icon: 'none'
-        })
-        return
-      }
-      
       if (!this.returnType) {
         uni.showToast({
           title: 'Please select return type first',
@@ -157,33 +151,55 @@ export default {
         return
       }
       
+      if (!this.searchKeyword.trim()) {
+        uni.showToast({
+          title: 'Please enter order number',
+          icon: 'none'
+        })
+        return
+      }
+      
       this.isSearching = true
       
       try {
-        let res
-        if (this.returnType === 'CUSTOMER_RETURN') {
-          // Search Sales Order by order number
-          res = await api.getOrderByNo(this.searchKeyword)
-          if (res.success && res.data) {
-            this.searchResults = [res.data] // Single order result
-          } else {
-            this.searchResults = []
+        // Fetch all orders like admin does
+        const res = await api.getOrderList()
+        
+        if (res.success && res.data) {
+          let filteredOrders = res.data
+          
+          // Filter by return type (matching admin logic)
+          if (this.returnType === 'CUSTOMER_RETURN') {
+            // Customer Return: SO orders that are SHIPPED or DELIVERED
+            filteredOrders = filteredOrders.filter(order => 
+              order.orderType === 'SO' &&
+              (order.status === 'SHIPPED' || order.status === 'DELIVERED') &&
+              order.orderNo.toLowerCase().includes(this.searchKeyword.toLowerCase())
+            )
+          } else if (this.returnType === 'SUPPLIER_RETURN') {
+            // Supplier Return: PO orders that have receivings (PROCESSING, RECEIVED, or CLOSED)
+            filteredOrders = filteredOrders.filter(order => 
+              order.orderType === 'PO' &&
+              (order.status === 'PROCESSING' || order.status === 'RECEIVED' || order.status === 'CLOSED') &&
+              order.receivings && order.receivings.length > 0 &&
+              order.orderNo.toLowerCase().includes(this.searchKeyword.toLowerCase())
+            )
+          }
+          
+          this.searchResults = filteredOrders
+          
+          if (this.searchResults.length === 0) {
+            uni.showToast({
+              title: 'No matching orders found',
+              icon: 'none',
+              duration: 2000
+            })
           }
         } else {
-          // Search Purchase Order Receiving by DO number
-          res = await api.getReceivingByDoNumber(this.searchKeyword)
-          if (res.success && res.data) {
-            this.searchResults = Array.isArray(res.data) ? res.data : [res.data]
-          } else {
-            this.searchResults = []
-          }
-        }
-        
-        if (this.searchResults.length === 0) {
+          this.searchResults = []
           uni.showToast({
             title: 'No orders found',
-            icon: 'none',
-            duration: 2000
+            icon: 'none'
           })
         }
       } catch (error) {
@@ -197,22 +213,100 @@ export default {
       }
     },
     
-    selectOrder(order) {
-      this.selectedOrder = order
-      
-      if (this.returnType === 'CUSTOMER_RETURN') {
-        this.stockReturnForm.orderId = order.id
-        this.stockReturnForm.customerId = order.customerId
-        this.stockReturnForm.receivingId = null
-        this.stockReturnForm.supplierId = null
-      } else {
-        this.stockReturnForm.receivingId = order.id
-        this.stockReturnForm.supplierId = order.supplierId
-        this.stockReturnForm.orderId = null
-        this.stockReturnForm.customerId = null
+    async selectOrder(order) {
+      try {
+        // Clear previous scanned data when selecting new order
+        const stockStore = useStockStore()
+        stockStore.inquiredTagCodes = []
+        stockStore.scannedTags = []
+        stockStore.tagStore = {}
+        
+        // Fetch full order details with items (like admin does)
+        const detailRes = await api.getOrderById(order.id)
+        
+        if (detailRes.success && detailRes.data) {
+          const fullOrder = detailRes.data
+          
+          // Update form data
+          this.stockReturnForm.referenceNumber = fullOrder.orderNo
+          
+          if (this.returnType === 'CUSTOMER_RETURN') {
+            // Customer return: use order data
+            this.stockReturnForm.orderId = fullOrder.id
+            this.stockReturnForm.customerId = fullOrder.customerId
+            this.stockReturnForm.receivingId = null
+            this.stockReturnForm.supplierId = null
+            
+            // Products from order items
+            this.selectedOrder = fullOrder
+            
+          } else if (this.returnType === 'SUPPLIER_RETURN') {
+            // Supplier return: automatically fetch receiving and INBOUND EPCs
+            if (!fullOrder.receivings || fullOrder.receivings.length === 0) {
+              uni.showToast({
+                title: 'No receiving found for this PO',
+                icon: 'none'
+              })
+              return
+            }
+            
+            const receiving = fullOrder.receivings[0]
+            this.stockReturnForm.receivingId = receiving.id
+            this.stockReturnForm.supplierId = fullOrder.supplierId
+            this.stockReturnForm.orderId = fullOrder.id
+            this.stockReturnForm.customerId = null
+            
+            console.log('🔍 Fetching INBOUND EPCs for receiving:', receiving.id)
+            
+            // Fetch INBOUND EPCs from the receiving
+            try {
+              const epcRes = await api.getEpcsByReceiving(receiving.id, 'INBOUND')
+              
+              if (epcRes.success && epcRes.data) {
+                console.log('✅ INBOUND EPCs found:', epcRes.data)
+                
+                // Group EPCs by product and attach to order items
+                fullOrder.orderItems.forEach(item => {
+                  const productEpcs = epcRes.data.filter(epc => 
+                    epc.productId === item.product.id
+                  )
+                  
+                  item.allocatedEpcs = productEpcs.map(epc => ({
+                    epcCode: epc.epcCode,
+                    warehouseCode: epc.warehouse?.warehouseCode || '',
+                    locationCode: epc.location?.locationCode || '',
+                    status: epc.status
+                  }))
+                  
+                  console.log(`📦 Product ${item.product.skuCode}: ${productEpcs.length} INBOUND EPCs`)
+                })
+              } else {
+                console.warn('⚠️ No INBOUND EPCs found')
+              }
+            } catch (error) {
+              console.error('Failed to fetch INBOUND EPCs:', error)
+              uni.showToast({
+                title: 'Failed to load EPCs',
+                icon: 'none'
+              })
+            }
+            
+            this.selectedOrder = fullOrder
+          }
+          
+          console.log('✅ Order selected:', fullOrder)
+          console.log('📦 Order items:', fullOrder.orderItems)
+          
+          // Hide search results
+          this.searchResults = []
+        }
+      } catch (error) {
+        console.error('Error fetching order details:', error)
+        uni.showToast({
+          title: 'Failed to load order details',
+          icon: 'none'
+        })
       }
-      
-      console.log('Order selected:', order)
     },
     
     isSelected(order) {
@@ -307,32 +401,45 @@ export default {
     }
   }
   
-  .input-with-qr {
-    display: flex;
-    gap: 8px;
-    align-items: center;
+  .search-container {
+    width: 100%;
   }
   
   .input-field {
-    flex: 1;
-    background-color: #f5f5f5;
-    border-radius: 4px;
-    padding: 8px 10px;
-    font-size: 13px;
-
-    :deep(.input-right-icon) {
-      .u-icon__icon {
-        font-size: 12px !important;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    
+    :deep(.u-input__content__field-wrapper) {
+      padding-right: 4px;
+    }
+    
+    .input-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      
+      .scan-icon-wrapper {
+        display: flex;
+        align-items: center;
+        padding: 4px;
+        cursor: pointer;
+        transition: all 0.3s;
+        border-radius: 4px;
+        
+        &:active {
+          opacity: 0.6;
+          transform: scale(0.95);
+        }
+      }
+      
+      .scan-icon {
+        display: block;
       }
     }
     
     :deep(.up-button) {
       pointer-events: auto !important;
       z-index: 10;
-    }
-    
-    :deep(.u-button--disabled) {
-      opacity: 0.5;
     }
   }
   
