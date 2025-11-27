@@ -440,6 +440,69 @@ export const useStockStore = defineStore('stock', {
                                 return
                             }
                         }
+                        
+                        // STOCK-IN ONLY: Validate quantity limits per SKU based on receiving quantity
+                        if (isStockIn) {
+                            // Calculate current scanned quantities per SKU
+                            const scannedQuantityMap = new Map()
+                            scannedTags.forEach(tag => {
+                                if (tag.skuCode) {
+                                    scannedQuantityMap.set(tag.skuCode, (scannedQuantityMap.get(tag.skuCode) || 0) + 1)
+                                }
+                            })
+                            
+                            // Check if new scans would exceed receiving quantity
+                            const quantityExceededEpcs = []
+                            res.data.forEach(epc => {
+                                if (epc.skuCode) {
+                                    const currentScanned = scannedQuantityMap.get(epc.skuCode) || 0
+                                    const receivingProduct = productsToMatch.find(p => (p.product?.skuCode || p.skuCode) === epc.skuCode)
+                                    
+                                    if (receivingProduct) {
+                                        const receivingQty = receivingProduct.receivingQuantity || receivingProduct.quantity || receivingProduct.receivedQuantity || 0
+                                        
+                                        if (currentScanned >= receivingQty) {
+                                            quantityExceededEpcs.push({
+                                                epc,
+                                                receivingQty,
+                                                currentScanned
+                                            })
+                                        }
+                                    }
+                                }
+                            })
+                            
+                            if (quantityExceededEpcs.length > 0) {
+                                // Remove EPCs that exceed quantity from tagStore
+                                quantityExceededEpcs.forEach(({epc}) => {
+                                    delete tagStore[epc.epcCode]
+                                    delete tagStore[epc.tagCode]
+                                })
+                                
+                                // Show error popup with details
+                                const firstExceeded = quantityExceededEpcs[0]
+                                
+                                uni.showModal({
+                                    title: '❌ Quantity Exceeded',
+                                    content: `Cannot scan more EPCs than receiving quantity!\n\n` +
+                                             `SKU: ${firstExceeded.epc.skuCode}\n` +
+                                             `Receiving Quantity: ${firstExceeded.receivingQty}\n` +
+                                             `Already Scanned: ${firstExceeded.currentScanned}\n\n` +
+                                             `You have already scanned all EPCs for this DO.\n` +
+                                             `Please check the DO number or receiving quantity.`,
+                                    showCancel: false
+                                })
+                                
+                                // Filter out quantity-exceeded EPCs from the response
+                                res.data = res.data.filter(epc => !quantityExceededEpcs.some(e => e.epc.epcCode === epc.epcCode))
+                                
+                                // If all EPCs were invalid, return early
+                                if (res.data.length === 0) {
+                                    resolve({success: false, msg: 'Quantity limit exceeded for receiving'})
+                                    return
+                                }
+                            }
+                        }
                     }
                     
                     if (res.data.length > 0) {
