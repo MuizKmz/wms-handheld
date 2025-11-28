@@ -150,4 +150,15 @@ export default {
     color: #999;
   }
 }
+
+:deep(.u-input__content__field-wrapper__field) {
+  font-size: 14px !important;
+  margin-left: 8px !important;
+}
+
+:deep(.u-input__content) {
+  padding: 0 !important;
+  background: transparent !important;
+  border: none !important;
+}
 </style>

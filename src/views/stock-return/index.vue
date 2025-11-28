@@ -33,7 +33,7 @@
       <stock-ctrl/>
     </view>
     
-    <up-loading-page :loading="ctrl.isLoading" :loading-text="ctrl.loadingTxt" bg-color="#f5e1c1" color="#666"
+    <up-loading-page :loading="ctrl.isLoading" :loading-text="ctrl.loadingTxt" bg-color="#f5f7fa" color="#666"
                      font-size="16"
                      icon-size="36"></up-loading-page>
   </view>

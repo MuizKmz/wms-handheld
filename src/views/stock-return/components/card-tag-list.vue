@@ -168,9 +168,7 @@ export default {
       
       return true
     },
-    onReload() {
-      this.$msg('Reloaded')
-    },
+    
     handleTagsUpdate() {
       let tagList = []
       let stockReturnTags = []
@@ -318,24 +316,32 @@ export default {
   }
 
   .table-container {
-    .table-wrapper {
+      .table-wrapper {
       border: 1px solid #e9ecef;
       border-radius: 8px;
-      overflow: hidden;
+      overflow: visible;
 
       .table-scroll {
         width: 100%;
         height: 320px;
+        overflow: auto;
+        position: relative; /* containing block for sticky header */
+        -webkit-overflow-scrolling: touch;
+        background: #f8f9fa url('') no-repeat top left; /* full-width grey bar behind header */
+        background-size: 100% 44px;
       }
 
       .table-header {
-        display: flex;
-        background-color: #f8f9fa;
+        display: inline-flex;
+        background-color: transparent; /* let .table-scroll provide the grey bar so it doesn't get cut */
         border-bottom: 2px solid #dee2e6;
-        position: sticky;
+        position: sticky; /* sticky inside .table-scroll */
         top: 0;
-        z-index: 10;
-
+        z-index: 40; /* above rows */
+        box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+        min-width: max-content; /* expand to full content width */
+        width: fit-content; /* fit to inner cells so it scrolls horizontally with content */
+        background-clip: padding-box;
         .header-cell {
           padding: 10px 8px;
           font-size: 12px;
@@ -377,6 +383,8 @@ export default {
           justify-content: center;
           border-right: 1px solid #e9ecef;
           text-align: center;
+          overflow: hidden;
+          white-space: normal; /* allow wrapping inside cells */
 
           &:last-child {
             border-right: none;
@@ -384,19 +392,34 @@ export default {
         }
       }
 
+      /* Condition column: allow buttons to wrap inside the cell instead of overflowing */
+      .condition-col {
+        overflow: hidden;
+        align-items: center;
+        justify-content: center;
+        padding: 10px 8px;
+
+        .condition-buttons {
+          display: flex;
+          gap: 6px;
+          flex-wrap: wrap;
+          justify-content: center;
+        }
+      }
+
       // Column widths
       .epc-col {
-        flex: 0 0 140px;
-        min-width: 140px;
+        flex: 0 0 220px;
+        min-width: 160px;
       }
 
       .product-col {
-        flex: 0 0 120px;
-        min-width: 120px;
+        flex: 1 1 220px; /* allow product column to grow and wrap */
+        min-width: 140px;
       }
 
       .sku-col {
-        flex: 0 0 100px;
+        flex: 0 0 120px;
         min-width: 100px;
       }
 
@@ -406,26 +429,36 @@ export default {
       }
 
       .condition-col {
-        flex: 0 0 180px;
-        min-width: 180px;
+        flex: 0 0 220px;
+        min-width: 160px;
+        /* allow inner buttons to wrap and remain visible */
       }
 
       .epc-text {
         font-size: 11px;
         color: #667eea;
         font-weight: 500;
-        word-break: break-all;
+        word-break: break-word; /* allow long EPCs to wrap sensibly */
+        white-space: normal;
+        line-height: 1.3;
+        max-width: 220px;
       }
 
       .product-text {
         font-size: 12px;
         color: #333;
+        white-space: normal; /* allow product names to wrap */
+        word-break: break-word;
       }
 
       .sku-text {
         font-size: 11px;
         color: #666;
         font-family: monospace;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 100px;
       }
 
       .status-badge {
@@ -462,18 +495,18 @@ export default {
 
       .condition-buttons {
         display: flex;
-        gap: 4px;
+        gap: 6px;
         flex-wrap: wrap;
         justify-content: center;
 
         .condition-btn {
-          flex: 1;
-          min-width: 36px;
-          padding: 4px 6px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          padding: 6px 8px;
           background-color: #f8f9fa;
           border: 1px solid #dee2e6;
-          border-radius: 4px;
-          text-align: center;
+          border-radius: 6px;
           cursor: pointer;
           transition: all 0.2s;
 
@@ -488,9 +521,10 @@ export default {
           }
 
           .condition-text {
-            font-size: 9px;
+            font-size: 11px;
             color: #495057;
             font-weight: 500;
+            white-space: nowrap;
           }
         }
       }

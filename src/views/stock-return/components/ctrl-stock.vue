@@ -371,33 +371,63 @@ export default {
 <style lang="scss" scoped>
 .action-section {
   position: fixed;
-  bottom: -1px;
-  //bottom: 10px;
+  bottom: 0;
   left: 50%;
   transform: translateX(-50%);
   width: 100%;
-  background: #f5e1c1;
-  padding: 10px;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  background: linear-gradient(180deg, #ffffff 0%, #f5f7fa 100%);
+  padding: 16px 20px 20px;
+  box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.08);
   display: flex;
   flex-direction: column;
   align-items: center;
-  //margin-bottom: 6px;
+  z-index: 100;
+  border-top: 1px solid #e8eaed;
 }
 
 .action-buttons {
   width: 100%;
   display: flex;
   justify-content: space-between;
-  //margin-bottom: 10px;
-  margin-bottom: 4px;
-}
+  gap: 12px;
+  margin-bottom: 0;
 
-//.confirm-btn {
-//  width: 100%;
-//  font-size: 16px;
-//  border-radius: 100px;
-//  min-width: 150px;
-//}
+  :deep(.u-button) {
+    border-radius: 12px !important;
+    font-weight: 600 !important;
+    font-size: 12px !important;
+    padding: 14px 8px !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    transition: all 0.2s ease;
+
+    &:active {
+      transform: translateY(1px);
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+    }
+  }
+
+  :deep(.u-button__text) {
+    font-size: 12px !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+
+  :deep(.u-button--success) {
+    background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%) !important;
+  }
+
+  :deep(.u-button--warning) {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%) !important;
+  }
+
+  :deep(.u-button--primary) {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+  }
+
+  :deep(.u-button--info) {
+    background: linear-gradient(135deg, #a8b8d8 0%, #7e8ba3 100%) !important;
+  }
+}
 </style>
   

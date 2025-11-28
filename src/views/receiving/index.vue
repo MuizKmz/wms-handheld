@@ -17,11 +17,11 @@
         </view>
         
         <!-- Form fields in exact order from image -->
-  <receiving-code-input ref="receivingCode"/>
-  <input-p-o-number ref="poNumber"/>
-  <input-d-o-number ref="doNumber"/>
-  <warehouse-picker ref="warehouse"/>
-  <picker-location ref="locationPicker"/>
+        <receiving-code-input ref="receivingCode"/>
+        <input-p-o-number ref="poNumber"/>
+        <input-d-o-number ref="doNumber"/>
+        <warehouse-picker ref="warehouse"/>
+        <picker-location ref="locationPicker"/>
         <supplier-list-picker ref="supplierCode"/>
         <stock-purpose-picker ref="stockInPurpose"/>
         <input-received-date ref="receivedDate"/>
@@ -60,6 +60,7 @@ import ProductListCard from './components/card-product-list.vue'
 import ReceivingCtrl from './components/ctrl-receiving.vue'
 
 import dayjs from 'dayjs'
+import {useStockStore} from '@/store/stock'
 
 export default {
   name: 'Stock-in',
@@ -117,8 +118,12 @@ export default {
     }, 500)
   },
   methods: {
+    // stock store access for navigation
+    stockStore() {
+      return useStockStore()
+    },
     async toReceivingList() {
-      this.$router.push('/views/receiving/list')
+      uni.navigateTo({ url: '/views/receiving/list' })
     },
     async onSubmit() {
       if (await this.validateAll()) {
@@ -167,12 +172,44 @@ export default {
           
           if (res.success || res.data) {
             this.$msg('Receiving saved successfully')
-            
-            // Reset form and navigate back
-            setTimeout(() => {
+
+            // Offer choices after save: go Home or Stock In list
+            setTimeout(async () => {
               // regenerate code for next receiving
               this.receivingForm.code = this.generateReceivingCode()
-              this.$router.push('/views/receiving/list')
+
+              // Show action sheet (works on uni-app)
+              try {
+                const resAction = await new Promise((resolve) => {
+                  uni.showActionSheet({
+                    itemList: ['Go Home', 'Stock In List'],
+                    success: (e) => resolve({tapIndex: e.tapIndex}),
+                    fail: () => resolve({tapIndex: -1})
+                  })
+                })
+
+                if (resAction.tapIndex === 0) {
+                  // Go to home page
+                  uni.navigateTo({ url: '/views/index' })
+                } else if (resAction.tapIndex === 1) {
+                  // Go to Stock In page (EPC mode) - set store like index.vue
+                  try {
+                    const stock = this.stockStore()
+                    stock.stockInForm.tagFlow = 1
+                    stock.stockInForm.inboundType = 1
+                    stock.ctrl.isLoading = true
+                    stock.ctrl.loadingTxt = 'Loading...'
+                  } catch (e) {
+                    console.warn('Failed to set stock store before navigation', e)
+                  }
+                  uni.navigateTo({ url: '/views/stock-in/index' })
+                } else {
+                  // default: stay on page
+                }
+              } catch (err) {
+                // Fallback navigation -> go to Stock In page
+                uni.navigateTo({ url: '/views/stock-in/index' })
+              }
             }, 1000)
           } else {
             this.$msg(res.message || 'Failed to save receiving')
